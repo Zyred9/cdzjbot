@@ -1,0 +1,36 @@
+# -------------------部署需要修改---------------------
+bots:
+  config:
+    logs: false
+    enable-proxy: false
+    tokens:
+      BOT_TOKEN: 7507839053:AAFW7PFexmXOLDiG0GQojLEdGQcA2A2lY4g
+    background-id: -1003181400582
+    audit-id: -1003147012451
+    publish-id: -1003138818633
+    exposure-id: -1002787414688
+    address: TMPQSc5YsjLBh9CdYcCH3RmqEAfELFuLMe
+# -------------------部署需要修改---------------------
+
+mybatis-plus:
+  mapper-locations: classpath:/mapper/**.xml
+  configuration:
+    # MyBatis 配置
+    map-underscore-to-camel-case: true
+
+  global-config:
+    # 全局配置
+    banner: false
+    db-config:
+      table-prefix: t_
+      # 数据库配置
+      id-type: auto
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: root
+    password: Qj683k2^11299%nkjb
+    url: jdbc:mysql://127.0.0.1:3306/cdzjbot?useUnicode=true&characterEncoding=utf8&autoReconnect=true&serverTimezone=Asia/Shanghai&useSSL=false&nullCatalogMeansCurrent=true
+logging:
+  level:
+    com.db.bots: ERROR

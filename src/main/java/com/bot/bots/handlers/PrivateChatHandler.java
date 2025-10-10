@@ -1,0 +1,195 @@
+package com.bot.bots.handlers;
+
+import cn.hutool.core.util.StrUtil;
+import com.bot.bots.beans.cache.CommonCache;
+import com.bot.bots.beans.caffeine.CountdownCaffeine;
+import com.bot.bots.beans.chat.ChatQueryHandler;
+import com.bot.bots.beans.view.Scheduled;
+import com.bot.bots.config.BotProperties;
+import com.bot.bots.config.Constants;
+import com.bot.bots.database.entity.*;
+import com.bot.bots.database.enums.ExposeStatus;
+import com.bot.bots.database.enums.TaskNode;
+import com.bot.bots.database.enums.TaskType;
+import com.bot.bots.database.enums.TempEnum;
+import com.bot.bots.database.service.ConfigService;
+import com.bot.bots.database.service.PublishService;
+import com.bot.bots.database.service.RechargeService;
+import com.bot.bots.database.service.UserService;
+import com.bot.bots.helper.DecimalHelper;
+import com.bot.bots.helper.KeyboardHelper;
+import com.bot.bots.helper.StrHelper;
+import com.bot.bots.sender.AsyncSender;
+import org.springframework.stereotype.Component;
+import org.telegram.telegrambots.meta.api.methods.botapimethods.BotApiMethod;
+import org.telegram.telegrambots.meta.api.objects.Update;
+import org.telegram.telegrambots.meta.api.objects.message.Message;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
+
+import javax.annotation.Resource;
+
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+
+/**
+ * <p>
+ *      私聊
+ * </p>
+ *
+ * @author admin
+ * @since v 0.0.1
+ */
+@Component
+public class PrivateChatHandler extends AbstractHandler{
+
+    @Resource private UserService userService;
+    @Resource private BotProperties properties;
+    @Resource private ConfigService configService;
+    @Resource private PublishService publishService;
+    @Resource private RechargeService rechargeService;
+    @Resource private ChatQueryHandler chatQueryHandler;
+    @Resource private com.bot.bots.database.service.ExposeService exposeService;
+
+    @Override
+    public boolean support(Update update) {
+        return update.hasMessage()
+                && update.getMessage().hasText()
+                && update.getMessage().isUserMessage();
+    }
+
+    @Override
+    protected BotApiMethod<?> execute(Update update) {
+        Message message = update.getMessage();
+        String text = message.getText();
+
+        if (StrUtil.equals(text, "/start")) {
+            this.userService.queryUser(message.getFrom());
+            List<Long> channels = this.properties.getChannels();
+            for (Long channel : channels) {
+                boolean b = this.chatQueryHandler.checkUserInGroup(channel, message.getFrom().getId());
+                if (!b) {
+                    return ok(message, Constants.START_SUBSCRIBE_TEXT);
+                }
+            }
+            return reply(message, Constants.START_TEXT, KeyboardHelper.buildStartKeyboard());
+        }
+
+        if (StrUtil.equals(text, "联系客服")) {
+            Config config = this.configService.queryConfig();
+            if (StrUtil.isBlank(config.getCustomText())) {
+                return null;
+            }
+            InlineKeyboardMarkup keyboard = KeyboardHelper.keyboard(config.getCustomKeyboard());
+            return markdownReply(message, config.getCustomText(), keyboard);
+        }
+
+        if (StrUtil.equals(text, "盘总料方合作洽谈")) {
+            Config config = this.configService.queryConfig();
+            if (StrUtil.isBlank(config.getSelfText())) {
+                return null;
+            }
+            InlineKeyboardMarkup keyboard = KeyboardHelper.keyboard(config.getSelfKeyboard());
+            return markdownReply(message, config.getSelfText(), keyboard);
+        }
+
+        if (StrUtil.equals(text, "骗子曝光")) {
+            // 进入骗子曝光流程：回复模版与功能键盘，设置缓存等待用户提交
+            CommonCache.put(message.getFrom().getId(), TempEnum.INPUT_PZ_EXPOSE_TEXT);
+            return markdownReply(message, Constants.PZ_EXPOSE_TEMPLATE);
+        }
+
+        if (StrUtil.equals(text, "我的")) {
+            User user = this.userService.queryUser(message.getFrom());
+            String selfText = user.buildSelfText();
+            return markdownReply(message, selfText);
+        }
+
+        if (StrUtil.equals(text, "供需方发布")) {
+            User user = this.userService.queryUser(message.getFrom());
+
+            // 余额不足
+            if (DecimalHelper.lessThan(user.getBalance(), Constants.COST)) {
+                BigDecimal subtract = Constants.COST.subtract(user.getBalance());
+                Recharge recharge = Recharge.build(user, subtract, this.properties.getAddress());
+                this.rechargeService.save(recharge);
+                CountdownCaffeine.set(
+                        String.valueOf(recharge.getId()),
+                        Scheduled.build(TaskType.RECHARGE, TaskNode.RECHARGE)
+                );
+                return reply(message, recharge.buildText(user.getBalance()));
+            }
+            CommonCache.put(message.getFrom().getId(), TempEnum.INPUT_PUBLISH_TEXT);
+            return markdown(message, Constants.P_C_PUBLISH_TEXT);
+        }
+
+        // 用户有缓存
+        if (CommonCache.containsKey(message.getFrom().getId())) {
+            return this.processorCache(message);
+        }
+
+        List<String> commands = StrUtil.split(text, "#");
+
+        return null;
+    }
+
+    private BotApiMethod<?> processorCache(Message message) {
+        TempEnum temp = CommonCache.getIfRemove(message.getFrom().getId());
+        if (Objects.equals(temp, TempEnum.INPUT_PUBLISH_TEXT)) {
+            String text = message.getText();
+            Map<String, String> parsed = StrHelper.parsePublishText(text);
+            boolean a = parsed.containsKey("供需方");
+            boolean b = parsed.containsKey("项目名称");
+            boolean c = parsed.containsKey("项目介绍");
+            boolean d = parsed.containsKey("金额");
+
+            boolean e = a & b & c & d;
+            if (!e) {
+                return reply(message, "（供需方、项目名称、项目介绍、金额）必填！！");
+            }
+
+            Long auditId = this.properties.getAuditId();
+            Publish p = Publish.build(text, message.getFrom().getId());
+            this.publishService.save(p);
+
+            InlineKeyboardMarkup markup = KeyboardHelper.buildAuditPublishKeyboard(p.getId());
+
+            AsyncSender.async(this.markdown(auditId, text, markup));
+            return reply(message, "✅请耐心等待，审核中...");
+        }
+
+
+        if (Objects.equals(temp, TempEnum.INPUT_PZ_EXPOSE_TEXT)) {
+            String text = message.getText();
+            Map<String, String> parsed = StrHelper.parsePzExposeText(text);
+
+            boolean needId = parsed.containsKey("骗子ID");
+            boolean needNick = parsed.containsKey("骗子昵称");
+            if (!(needId && needNick)) {
+                return reply(message, "（骗子ID、骗子昵称）必填！！");
+            }
+
+            Expose expose = new Expose()
+                    .setUserId(message.getFrom().getId())
+                    .setTextRaw(text)
+                    .setPzUserId(parsed.getOrDefault("骗子ID", ""))
+                    .setPzNickname(parsed.getOrDefault("骗子昵称", ""))
+                    .setStory(parsed.getOrDefault("被骗经过", ""))
+                    .setPzAddress(parsed.getOrDefault("骗子U地址", ""))
+                    .setStatus(ExposeStatus.WAIT);
+
+            this.exposeService.save(expose);
+
+            Long auditGroupId = this.properties.getAuditId();
+            InlineKeyboardMarkup auditKeyboard = KeyboardHelper.buildPzExposeAuditKeyboard(expose.getId());
+            AsyncSender.async(this.markdown(auditGroupId, text, auditKeyboard));
+
+            return reply(message, "✅已提交审核，审核中...");
+        }
+
+        return null;
+    }
+
+
+}

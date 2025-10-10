@@ -1,0 +1,41 @@
+# -------------------部署需要修改---------------------
+bots:
+  config:
+    logs: true
+    enable-proxy: true
+    proxy-host-name: 127.0.0.1
+    proxy-port: 7890
+    proxy-type: socks
+    tokens:
+      BOT_TOKEN: 8091103662:AAGhAp6lUMG2IK5VROdS9Uu9fMalLSAE91w
+    background-id: -1002756411889
+    audit-id: -1002756411889
+    publish-id: -1002756411889
+    exposure-id: -1002756411889
+    address: TMPQSc5YsjLBh9CdYcCH3RmqEAfELFuLMe
+    channels:
+      - -1002756411889
+      - -1002756411889
+# -------------------部署需要修改---------------------
+
+
+mybatis-plus:
+  mapper-locations: classpath:/mapper/**.xml
+  configuration:
+    # MyBatis 配置
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+  global-config:
+    # 全局配置
+    banner: false
+    db-config:
+      table-prefix: t_
+      # 数据库配置
+      id-type: auto
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: root
+    password: root
+    url: jdbc:mysql://127.0.0.1:3306/cdzjbot?useUnicode=true&characterEncoding=utf8&autoReconnect=true&serverTimezone=Asia/Shanghai&useSSL=false&nullCatalogMeansCurrent=true
