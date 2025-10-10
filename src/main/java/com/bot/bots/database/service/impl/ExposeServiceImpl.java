@@ -1,10 +1,15 @@
 package com.bot.bots.database.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.bot.bots.database.entity.Expose;
+import com.bot.bots.database.entity.Recharge;
 import com.bot.bots.database.enums.ExposeStatus;
 import com.bot.bots.database.mapper.ExposeMapper;
+import com.bot.bots.database.mapper.RechargeMapper;
 import com.bot.bots.database.service.ExposeService;
+import com.bot.bots.database.service.RechargeService;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
@@ -16,36 +21,14 @@ import javax.annotation.Resource;
  * @since 1.0
  */
 @Service
-public class ExposeServiceImpl implements ExposeService {
-
-    @Resource
-    private ExposeMapper exposeMapper;
+public class ExposeServiceImpl extends ServiceImpl<ExposeMapper, Expose> implements ExposeService  {
 
     @Override
-    public boolean save(Expose expose) {
-        return this.exposeMapper.insert(expose) > 0;
-    }
-
-    @Override
-    public Expose getById(Long id) {
-        return this.exposeMapper.selectById(id);
-    }
-
-    @Override
-    public boolean updateStatusAndAudit(Long id, ExposeStatus status, Long auditBy, String auditAt) {
-        LambdaUpdateWrapper<Expose> uw = new LambdaUpdateWrapper<>();
-        uw.eq(Expose::getId, id)
-          .set(Expose::getStatus, status)
-          .set(Expose::getAuditBy, auditBy)
-          .set(Expose::getAuditAt, auditAt);
-        return this.exposeMapper.update(null, uw) > 0;
-    }
-
-    @Override
-    public boolean updateChannelMessageId(Long id, Integer messageId) {
-        LambdaUpdateWrapper<Expose> uw = new LambdaUpdateWrapper<>();
-        uw.eq(Expose::getId, id)
-          .set(Expose::getChannelMessageId, messageId);
-        return this.exposeMapper.update(null, uw) > 0;
+    public void updateStatusAndAudit(Long id, ExposeStatus status) {
+        this.baseMapper.update(
+                Wrappers.<Expose>lambdaUpdate()
+                        .eq(Expose::getId, id)
+                        .set(Expose::getStatus, status)
+        );
     }
 }

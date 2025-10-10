@@ -73,21 +73,4 @@ public class StrHelper {
 
         return map;
     }
-
-    /**
-     * 解析骗子曝光文本
-     * 键包含：骗子ID、骗子昵称、被骗经过、骗子U地址
-     */
-    public static Map<String, String> parsePzExposeText(String text) {
-        List<String> split = StrUtil.split(text, "
-");
-        Map<String, String> map = new HashMap<>(split.size());
-        for (String line : split) {
-            String[] kv = line.split("[:：]");
-            if (kv.length >= 2) {
-                map.put(StrUtil.trim(kv[0]), StrUtil.trim(kv[1]));
-            }
-        }
-        return map;
-    }
 }

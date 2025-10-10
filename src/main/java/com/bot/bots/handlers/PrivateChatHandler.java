@@ -162,7 +162,7 @@ public class PrivateChatHandler extends AbstractHandler{
 
         if (Objects.equals(temp, TempEnum.INPUT_PZ_EXPOSE_TEXT)) {
             String text = message.getText();
-            Map<String, String> parsed = StrHelper.parsePzExposeText(text);
+            Map<String, String> parsed = StrHelper.parsePublishText(text);
 
             boolean needId = parsed.containsKey("骗子ID");
             boolean needNick = parsed.containsKey("骗子昵称");

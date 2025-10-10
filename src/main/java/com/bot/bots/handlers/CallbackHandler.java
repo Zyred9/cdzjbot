@@ -3,12 +3,11 @@ package com.bot.bots.handlers;
 import cn.hutool.core.util.StrUtil;
 import com.bot.bots.config.BotProperties;
 import com.bot.bots.config.Constants;
+import com.bot.bots.database.entity.Expose;
 import com.bot.bots.database.entity.Publish;
 import com.bot.bots.database.entity.User;
-import com.bot.bots.database.service.ConfigService;
-import com.bot.bots.database.service.PublishService;
-import com.bot.bots.database.service.RechargeService;
-import com.bot.bots.database.service.UserService;
+import com.bot.bots.database.enums.ExposeStatus;
+import com.bot.bots.database.service.*;
 import com.bot.bots.helper.KeyboardHelper;
 import com.bot.bots.sender.AsyncSender;
 import org.springframework.stereotype.Component;
@@ -16,9 +15,6 @@ import org.telegram.telegrambots.meta.api.methods.botapimethods.BotApiMethod;
 import org.telegram.telegrambots.meta.api.objects.CallbackQuery;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.message.Message;
-import com.bot.bots.database.entity.Expose;
-import com.bot.bots.database.enums.ExposeStatus;
-import com.bot.bots.database.service.ExposeService;
 
 import javax.annotation.Resource;
 import java.util.List;
@@ -108,15 +104,13 @@ public class CallbackHandler extends AbstractHandler {
             }
 
             User user = this.userService.getById(expose.getUserId());
-            Long operatorId = callbackQuery.getFrom().getId();
-            String nowTs = String.valueOf(System.currentTimeMillis());
 
             if (value) {
                 Long channelId = this.properties.getExposureId();
                 // 发布到频道，附三按钮
                 AsyncSender.async(this.markdown(channelId, expose.getTextRaw(), KeyboardHelper.buildPublishChannelKeyboard()));
                 // 更新状态与审计信息
-                this.exposeService.updateStatusAndAudit(exposeId, ExposeStatus.APPROVED, operatorId, nowTs);
+                this.exposeService.updateStatusAndAudit(exposeId, ExposeStatus.APPROVED);
                 // 通知用户
                 AsyncSender.async(this.ok(user.getUserId(), "骗子曝光已发布"));
                 // 编辑审核群消息为“完成”
@@ -124,7 +118,7 @@ public class CallbackHandler extends AbstractHandler {
             }
 
             // 拒绝
-            this.exposeService.updateStatusAndAudit(exposeId, ExposeStatus.REJECTED, operatorId, nowTs);
+            this.exposeService.updateStatusAndAudit(exposeId, ExposeStatus.REJECTED);
             AsyncSender.async(ok(user.getUserId(), "骗子发布已拒绝，请填写的更加详细哦，有问题联系客服"));
             return this.editMarkdown(message, message.getText(), KeyboardHelper.buildCommonDel("❌拒绝(点击删除本消息)"));
         }
