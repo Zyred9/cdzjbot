@@ -7,12 +7,13 @@ import com.bot.bots.database.service.TeamCtxService;
 import org.springframework.stereotype.Service;
 
 /**
- * 地址库服务实现（冗余字段模糊查询 + 分页）
+ * TeamCtxServiceImpl
+ *
+ * TeamCtx 的默认服务实现，基于 MyBatis-Plus ServiceImpl。
  *
  * @author zyred
  * @since 1.0
  */
 @Service
 public class TeamCtxServiceImpl extends ServiceImpl<TeamCtxMapper, TeamCtx> implements TeamCtxService {
-
 }

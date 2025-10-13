@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="layout/base :: layout(~{::body})">
+<body>
+<h2>承兑报备数据</h2>
+<style>
+    .card { background: #fff; padding: 16px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.06); }
+    .toolbar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+    .input { padding: 8px 10px; border: 1px solid #dcdfe6; border-radius: 6px; outline: none; }
+    .btn { padding: 8px 14px; border-radius: 6px; background: #1677ff; color: #fff; border: none; }
+    .btn:hover { background: #0f66dd; }
+    table { border-collapse: collapse; width: 100%; background: #fff; border-radius: 10px; overflow: hidden; }
+    thead th { background: #f6f8fa; color: #333; padding: 10px 8px; border: 1px solid #e5e7eb; text-align: center; }
+    tbody td { padding: 10px 8px; border: 1px solid #e5e7eb; text-align: center; }
+    tbody tr:nth-child(odd) { background: #fcfcfd; }
+    tbody tr:hover { background: #f2f8ff; }
+    .pager { margin-top: 12px; }
+</style>
+
+<div class="toolbar">
+    <input class="input" id="q_userId" placeholder="用户ID"/>
+    <input class="input" id="q_username" placeholder="用户名"/>
+    <input class="input" id="q_nickname" placeholder="用户昵称"/>
+    <input class="input" id="q_address" placeholder="地址"/>
+    <button class="btn" onclick="loadData(1)">查询</button>
+    <button class="btn" onclick="refreshPage()">刷新</button>
+    <button class="btn" onclick="location.href='/pc/team'">去车队报备</button>
+</div>
+
+<table>
+    <thead>
+    <tr>
+        <th>主键ID</th>
+        <th>用户ID</th>
+        <th>用户名</th>
+        <th>用户昵称</th>
+        <th>地址</th>
+        <th>分类</th>
+        <th>区间值</th>
+        <th>汇率</th>
+        <th>料性</th>
+        <th>禁止（多选）</th>
+        <th>是否空降</th>
+        <th>是否驻点</th>
+        <th>是否移动</th>
+        <th>是否跟车</th>
+    </tr>
+    </thead>
+    <tbody id="tbody"></tbody>
+</table>
+
+<div class="pager">
+    <button class="btn" onclick="prev()">上一页</button>
+    <span id="pageInfo"></span>
+    <button class="btn" onclick="next()">下一页</button>
+</div>
+
+<script>
+    let pageNo = 1, pageSize = 10, total = 0, pages = 0;
+
+    function q(v){ return document.getElementById(v).value.trim(); }
+    function toYesNo(v){ return v === true ? '是' : (v === false ? '否' : ''); }
+    function formatEnum(e){
+        if(!e) return '';
+        if (typeof e === 'object') return e.desc || e.name || JSON.stringify(e);
+        return e;
+    }
+    function formatArray(arr){
+        if(!arr || !Array.isArray(arr)) return '';
+        return arr.map(it => (typeof it === 'object' ? (it.desc || it.name || JSON.stringify(it)) : it)).join('、');
+    }
+
+    function refreshPage(){ loadData(pageNo); }
+
+    function buildParams(pn){
+        const p = new URLSearchParams();
+        p.set('pageNo', pn.toString());
+        p.set('pageSize', pageSize.toString());
+        if(q('q_userId')) p.set('userId', q('q_userId'));
+        if(q('q_username')) p.set('username', q('q_username'));
+        if(q('q_nickname')) p.set('nickname', q('q_nickname'));
+        if(q('q_address')) p.set('address', q('q_address'));
+        return p.toString();
+    }
+
+    async function loadData(pn){
+        const resp = await fetch('/api/acceptance/list?' + buildParams(pn));
+        const data = await resp.json();
+        pageNo = data.current || 1;
+        pageSize = data.size || 10;
+        total = data.total || 0;
+        pages = data.pages || 0;
+
+        const list = data.records || [];
+        const tbody = document.getElementById('tbody');
+        tbody.innerHTML = list.map(it => `
+            <tr>
+                <td>${it.id ?? ''}</td>
+                <td>${it.userId ?? ''}</td>
+                <td>${it.username ?? ''}</td>
+                <td>${it.nickname ?? ''}</td>
+                <td>${it.address ?? ''}</td>
+                <td>${formatArray(it.categories)}</td>
+                <td>${it.intervalInput ?? ''}</td>
+                <td>${it.rate ?? ''}</td>
+                <td>${formatEnum(it.material)}</td>
+                <td>${formatArray(it.forbids)}</td>
+                <td>${toYesNo(it.airborne)}</td>
+                <td>${toYesNo(it.station)}</td>
+                <td>${toYesNo(it.move)}</td>
+                <td>${toYesNo(it.follow)}</td>
+            </tr>
+        `).join('');
+        document.getElementById('pageInfo').innerText = `第 ${pageNo} / ${pages} 页，共 ${total} 条`;
+    }
+
+    function prev(){ if(pageNo > 1) loadData(pageNo - 1); }
+    function next(){ if(pageNo < pages) loadData(pageNo + 1); }
+
+    loadData(1);
+</script>
+</body>
+</html>

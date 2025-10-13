@@ -7,6 +7,8 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 import java.util.Arrays;
+import com.fasterxml.jackson.annotation.JsonValue;
+import com.fasterxml.jackson.annotation.JsonCreator;
 
 /**
  *
@@ -35,5 +37,23 @@ public enum ForbidTypeEnum {
         return Arrays.stream(ForbidTypeEnum.values())
                 .filter(a -> StrUtil.equals(String.valueOf(a.getCode()), code))
                 .findFirst().orElse(null);
+    }
+
+    @JsonCreator(mode = JsonCreator.Mode.DELEGATING)
+    public static ForbidTypeEnum fromJson(String v) {
+        if (v == null) return null;
+        try { return ForbidTypeEnum.valueOf(v); } catch (Exception ignore) {}
+        ForbidTypeEnum byDesc = Arrays.stream(ForbidTypeEnum.values())
+                .filter(e -> StrUtil.equals(e.getDesc(), v))
+                .findFirst().orElse(null);
+        if (byDesc != null) return byDesc;
+        return Arrays.stream(ForbidTypeEnum.values())
+                .filter(e -> StrUtil.equals(String.valueOf(e.getCode()), v))
+                .findFirst().orElse(null);
+    }
+
+    @JsonValue
+    public String jsonValue() {
+        return this.getDesc();
     }
 }

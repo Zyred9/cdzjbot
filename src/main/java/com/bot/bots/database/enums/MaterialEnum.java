@@ -7,6 +7,8 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 import java.util.Arrays;
+import com.fasterxml.jackson.annotation.JsonValue;
+import com.fasterxml.jackson.annotation.JsonCreator;
 
 /**
  *
@@ -39,5 +41,23 @@ public enum MaterialEnum {
         return Arrays.stream(MaterialEnum.values())
                 .filter(a -> StrUtil.equals(String.valueOf(a.getCode()), code))
                 .findFirst().orElse(null);
+    }
+
+    @JsonCreator(mode = JsonCreator.Mode.DELEGATING)
+    public static MaterialEnum fromJson(String v) {
+        if (v == null) return null;
+        try { return MaterialEnum.valueOf(v); } catch (Exception ignore) {}
+        MaterialEnum byDesc = Arrays.stream(MaterialEnum.values())
+                .filter(e -> StrUtil.equals(e.getDesc(), v))
+                .findFirst().orElse(null);
+        if (byDesc != null) return byDesc;
+        return Arrays.stream(MaterialEnum.values())
+                .filter(e -> StrUtil.equals(String.valueOf(e.getCode()), v))
+                .findFirst().orElse(null);
+    }
+
+    @JsonValue
+    public String jsonValue() {
+        return this.getDesc();
     }
 }

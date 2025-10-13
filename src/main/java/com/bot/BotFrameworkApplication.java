@@ -11,7 +11,7 @@ public class BotFrameworkApplication {
 
 	public static void main(String[] args) {
 		new SpringApplicationBuilder(BotFrameworkApplication.class)
-				.web(WebApplicationType.NONE)
+				.web(WebApplicationType.SERVLET)
 				.run(args);
 	}
 }

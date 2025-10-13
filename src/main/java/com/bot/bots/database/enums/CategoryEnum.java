@@ -8,6 +8,8 @@ import lombok.Getter;
 
 import java.util.Arrays;
 import java.util.Objects;
+import com.fasterxml.jackson.annotation.JsonValue;
+import com.fasterxml.jackson.annotation.JsonCreator;
 
 /**
  *
@@ -35,5 +37,23 @@ public enum CategoryEnum {
         return Arrays.stream(CategoryEnum.values())
                 .filter(a -> StrUtil.equals(String.valueOf(a.getCode()), categoryCode))
                 .findFirst().orElse(null);
+    }
+
+    @JsonCreator(mode = JsonCreator.Mode.DELEGATING)
+    public static CategoryEnum fromJson(String v) {
+        if (v == null) return null;
+        try { return CategoryEnum.valueOf(v); } catch (Exception ignore) {}
+        CategoryEnum byDesc = Arrays.stream(CategoryEnum.values())
+                .filter(e -> StrUtil.equals(e.getDesc(), v))
+                .findFirst().orElse(null);
+        if (byDesc != null) return byDesc;
+        return Arrays.stream(CategoryEnum.values())
+                .filter(e -> StrUtil.equals(String.valueOf(e.getCode()), v))
+                .findFirst().orElse(null);
+    }
+
+    @JsonValue
+    public String jsonValue() {
+        return this.getDesc();
     }
 }
