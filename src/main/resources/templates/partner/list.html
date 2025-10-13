@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" th:replace="layout/base :: layout(~{::body})">
 <body>
-<h2>承兑报备数据</h2>
+<h2>合作方报备数据</h2>
 <style>
     .card { background: #fff; padding: 16px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.06); }
     .toolbar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
@@ -24,7 +24,7 @@
     <button class="btn" onclick="loadData(1)">查询</button>
     <button class="btn" onclick="refreshPage()">刷新</button>
     <button class="btn" th:onclick="|location.href='@{/pc/team(userId=${userId})}'|">去车队报备</button>
-    <button class="btn" th:onclick="|location.href='@{/pc/partner(userId=${userId})}'|">去合作方报备</button>
+    <button class="btn" th:onclick="|location.href='@{/pc/acceptance(userId=${userId})}'|">去承兑报备</button>
 </div>
 
 <table>
@@ -35,15 +35,9 @@
         <th>用户名</th>
         <th>用户昵称</th>
         <th>地址</th>
-        <th>分类</th>
-        <th>区间值</th>
-        <th>汇率</th>
-        <th>料性</th>
-        <th>禁止（多选）</th>
-        <th>是否空降</th>
-        <th>是否驻点</th>
-        <th>是否移动</th>
-        <th>是否跟车</th>
+        <th>模式</th>
+        <th>钱包在现场</th>
+        <th>补充要求</th>
         <th>操作</th>
     </tr>
 
@@ -60,17 +54,8 @@
 <script>
     let pageNo = 1, pageSize = 10, total = 0, pages = 0;
 
-    function q(v){ return document.getElementById(v).value.trim(); }
-    function toYesNo(v){ return v === true ? '是' : (v === false ? '否' : ''); }
-    function formatEnum(e){
-        if(!e) return '';
-        if (typeof e === 'object') return e.desc || e.name || JSON.stringify(e);
-        return e;
-    }
-    function formatArray(arr){
-        if(!arr || !Array.isArray(arr)) return '';
-        return arr.map(it => (typeof it === 'object' ? (it.desc || it.name || JSON.stringify(it)) : it)).join('、');
-    }
+    function q(v){ const el = document.getElementById(v); return el ? el.value.trim() : ''; }
+    function yesNo(v){ return v === true ? '是' : (v === false ? '否' : ''); }
 
     function refreshPage(){ loadData(pageNo); }
 
@@ -86,7 +71,7 @@
     }
 
     async function loadData(pn){
-        const resp = await fetch('/api/acceptance/list?' + buildParams(pn));
+        const resp = await fetch('/api/partner/list?' + buildParams(pn));
         const data = await resp.json();
         pageNo = data.current || 1;
         pageSize = data.size || 10;
@@ -102,15 +87,9 @@
                 <td>${it.username ?? ''}</td>
                 <td>${it.nickname ?? ''}</td>
                 <td>${it.address ?? ''}</td>
-                <td>${formatArray(it.categories)}</td>
-                <td>${it.intervalInput ?? ''}</td>
-                <td>${it.rate ?? ''}</td>
-                <td>${formatEnum(it.material)}</td>
-                <td>${formatArray(it.forbids)}</td>
-                <td>${toYesNo(it.airborne)}</td>
-                <td>${toYesNo(it.station)}</td>
-                <td>${toYesNo(it.move)}</td>
-                <td>${toYesNo(it.follow)}</td>
+                <td>${it.model ?? ''}</td>
+                <td>${yesNo(it.packet)}</td>
+                <td>${it.supplement ?? ''}</td>
                 <td>
                     <button class="btn" onclick="editRow(${it.id})">编辑</button>
                     <button class="btn" style="background:#ff4d4f" onclick="deleteRow(${it.id})">删除</button>
@@ -127,74 +106,37 @@
     // ======= 可视化编辑弹窗逻辑 =======
     let editCache = null;
 
-    function openEditModal() {
-        document.getElementById('editMask').style.display = 'block';
-    }
-    function closeEditModal() {
-        document.getElementById('editMask').style.display = 'none';
-        editCache = null;
-    }
+    function openEditModal() { document.getElementById('editMask').style.display = 'block'; }
+    function closeEditModal() { document.getElementById('editMask').style.display = 'none'; editCache = null; }
 
     async function editRow(id){
-        const resp = await fetch('/api/acceptance/' + id);
+        const resp = await fetch('/api/partner/' + id);
         const item = await resp.json();
         editCache = item;
 
-        // 赋值表单
         setVal('e_username', item.username || '');
         setVal('e_nickname', item.nickname || '');
         setVal('e_address', item.address || '');
-        setVal('e_intervalInput', item.intervalInput || '');
-        setVal('e_rate', item.rate ?? '');
-
-        // 数组/枚举类：使用逗号分隔输入，避免JSON
-        setVal('e_categories', Array.isArray(item.categories) ? item.categories.map(x => (typeof x === 'object' ? (x.desc || x.name || '') : x)).filter(Boolean).join('，') : '');
-        setVal('e_forbids', Array.isArray(item.forbids) ? item.forbids.map(x => (typeof x === 'object' ? (x.desc || x.name || '') : x)).filter(Boolean).join('，') : '');
-        setVal('e_material', (typeof item.material === 'object') ? (item.material.desc || item.material.name || '') : (item.material || ''));
-
-        setChecked('e_airborne', !!item.airborne);
-        setChecked('e_station', !!item.station);
-        setChecked('e_move', !!item.move);
-        setChecked('e_follow', !!item.follow);
+        setVal('e_model', item.model || '');
+        setChecked('e_packet', !!item.packet);
+        setVal('e_supplement', item.supplement || '');
 
         openEditModal();
     }
-
     function setVal(id, v){ const el = document.getElementById(id); if(el) el.value = v; }
     function setChecked(id, v){ const el = document.getElementById(id); if(el) el.checked = v; }
-
-    function splitCsvToArray(v){
-        if(!v) return [];
-        // 支持中文顿号、中文逗号、英文逗号分隔
-        return v.split(/[,，、]/).map(s => s.trim()).filter(Boolean);
-    }
 
     async function saveEdit(){
         if(!editCache) return;
         const body = { ...editCache };
-
         body.username = document.getElementById('e_username').value.trim();
         body.nickname = document.getElementById('e_nickname').value.trim();
         body.address = document.getElementById('e_address').value.trim();
-        body.intervalInput = document.getElementById('e_intervalInput').value.trim();
-        const rateStr = document.getElementById('e_rate').value.trim();
-        body.rate = rateStr === '' ? null : rateStr;
+        body.model = document.getElementById('e_model').value.trim();
+        body.packet = document.getElementById('e_packet').checked;
+        body.supplement = document.getElementById('e_supplement').value.trim();
 
-        // 解析“逗号分隔”的多值字段
-        const cats = document.getElementById('e_categories').value.trim();
-        const forb = document.getElementById('e_forbids').value.trim();
-        const mat = document.getElementById('e_material').value.trim();
-
-        body.categories = splitCsvToArray(cats);
-        body.forbids = splitCsvToArray(forb);
-        body.material = mat || null;
-
-        body.airborne = document.getElementById('e_airborne').checked;
-        body.station = document.getElementById('e_station').checked;
-        body.move = document.getElementById('e_move').checked;
-        body.follow = document.getElementById('e_follow').checked;
-
-        const putResp = await fetch('/api/acceptance/' + body.id, {
+        const putResp = await fetch('/api/partner/' + body.id, {
             method: 'PUT',
             headers: {'Content-Type':'application/json'},
             body: JSON.stringify(body)
@@ -205,7 +147,7 @@
 
     async function deleteRow(id){
         if(!confirm('确认删除该记录？')) return;
-        const resp = await fetch('/api/acceptance/' + id, { method: 'DELETE' });
+        const resp = await fetch('/api/partner/' + id, { method: 'DELETE' });
         const ok = await resp.json();
         if(ok){ alert('删除成功'); refreshPage(); } else { alert('删除失败'); }
     }
@@ -223,35 +165,17 @@
     .form-item { display: flex; flex-direction: column; gap: 6px; }
     .label { color: #666; font-size: 13px; }
     .ipt, .txt { width: 100%; padding: 8px 10px; border: 1px solid #dcdfe6; border-radius: 6px; outline: none; }
-    .switch { width: 18px; height: 18px; }
 </style>
 <div id="editMask" class="mask">
     <div class="modal">
-        <div class="modal-hd">编辑承兑报备</div>
+        <div class="modal-hd">编辑合作方报备</div>
         <div class="modal-bd">
             <div class="form-item"><span class="label">用户名</span><input id="e_username" class="ipt" placeholder="用户名"/></div>
             <div class="form-item"><span class="label">用户昵称</span><input id="e_nickname" class="ipt" placeholder="用户昵称"/></div>
             <div class="form-item"><span class="label">地址</span><input id="e_address" class="ipt" placeholder="地址"/></div>
-            <div class="form-item"><span class="label">区间值</span><input id="e_intervalInput" class="ipt" placeholder="区间值"/></div>
-            <div class="form-item"><span class="label">汇率</span><input id="e_rate" class="ipt" placeholder="汇率，例：6.50"/></div>
-
-            <div class="form-item" style="grid-column: span 2;">
-                <span class="label">分类（多项，逗号分隔）</span>
-                <input id="e_categories" class="ipt" placeholder="示例：酒水, 现金"/>
-            </div>
-            <div class="form-item" style="grid-column: span 2;">
-                <span class="label">禁止（多项，逗号分隔）</span>
-                <input id="e_forbids" class="ipt" placeholder="示例：电诈, 违禁品"/>
-            </div>
-            <div class="form-item" style="grid-column: span 2;">
-                <span class="label">料性（单项）</span>
-                <input id="e_material" class="ipt" placeholder="示例：酒水"/>
-            </div>
-
-            <div class="form-item"><label class="label"><input id="e_airborne" type="checkbox" class="switch"/> 是否空降</label></div>
-            <div class="form-item"><label class="label"><input id="e_station" type="checkbox" class="switch"/> 是否驻点</label></div>
-            <div class="form-item"><label class="label"><input id="e_move" type="checkbox" class="switch"/> 是否移动</label></div>
-            <div class="form-item"><label class="label"><input id="e_follow" type="checkbox" class="switch"/> 是否跟车</label></div>
+            <div class="form-item"><span class="label">模式</span><input id="e_model" class="ipt" placeholder="模式"/></div>
+            <div class="form-item"><label class="label"><input id="e_packet" type="checkbox"/> 钱包在现场</label></div>
+            <div class="form-item" style="grid-column: span 2;"><span class="label">补充要求</span><input id="e_supplement" class="ipt" placeholder="补充要求"/></div>
         </div>
         <div class="modal-ft">
             <button class="btn" onclick="saveEdit()">保存</button>

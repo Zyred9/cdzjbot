@@ -26,6 +26,60 @@ import java.util.*;
  */
 public class KeyboardHelper {
 
+    public static InlineKeyboardMarkup buildCommitSupplementQueryKeyboard(int query) {
+        return InlineKeyboardMarkup.builder()
+                .keyboard(List.of(
+                        row(buttonText("⤵️立即查询", "privacy#supplement#to_query#"+query), cancelButton())
+                )).build();
+    }
+
+    public static InlineKeyboardMarkup buildSupplementCommitedKeyboard(int query) {
+        return InlineKeyboardMarkup.builder()
+                .keyboardRow(row(buttonText("✅报备已提交", "privacy#supplement#commited#"+query)))
+                .build();
+    }
+
+    public static InlineKeyboardMarkup buildCommitSupplementReportKeyboard(int query) {
+        return InlineKeyboardMarkup.builder()
+                .keyboard(List.of(
+                        row(buttonText("⤵️立即提交报备", "privacy#supplement#commit#"+query), cancelButton())
+                )).build();
+    }
+
+    public static InlineKeyboardMarkup buildSupplementKeyboard(int query) {
+        return InlineKeyboardMarkup.builder()
+                .keyboard(List.of(
+                        row(
+                                buttonText("✍️点击输入", "privacy#supplement#input#"+query)
+                        ),
+                        row(buttonText("⤵️下一步(跳过)", "privacy#supplement#confirm#"+query), cancelButton())
+                )).build();
+    }
+
+
+    public static InlineKeyboardMarkup buildPacketKeyboard(Boolean packet, int query) {
+        return InlineKeyboardMarkup.builder()
+                .keyboard(List.of(
+                        row(
+                                buttonText(packet == null ? "是" :  packet ? "✅是" : "是", "privacy#packet#true#"+query),
+                                buttonText(packet == null ? "否" : !packet ? "✅否" : "否", "privacy#packet#false#"+query)
+                        ),
+                        row(buttonText("⤵️下一步", "privacy#packet#confirm#"+query), cancelButton())
+                )).build();
+    }
+
+    public static InlineKeyboardMarkup buildModelKeyboard(String model, int query) {
+        boolean face = StrUtil.equals(model, "1");
+        return InlineKeyboardMarkup.builder()
+                .keyboard(List.of(
+                        row(
+                                buttonText(StrUtil.isNotBlank(model) &&  face ? "✅" + "专群" : "专群", "privacy#model#1#"+query),
+                                buttonText(StrUtil.isNotBlank(model) && !face ? "✅" + "面交" : "面交", "privacy#model#2#"+query)
+                        ),
+                        row(buttonText("⤵️下一步", "privacy#model#confirm#"+query), cancelButton())
+                )).build();
+    }
+
     public static InlineKeyboardMarkup buildScopeKeyboard(int query, Integer choose) {
         String chooseValue = String.valueOf(choose);
 

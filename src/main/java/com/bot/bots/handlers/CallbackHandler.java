@@ -143,9 +143,84 @@ public class CallbackHandler extends AbstractHandler {
                 return editMarkdown(message, text, markup);
             }
 
+            // 卸货合作商 / 卸货所在地
+            if (Objects.equals(query, AddressParam.UNLOADING_PARTNER.getCode())
+                    || Objects.equals(query, AddressParam.UNLOADING_LOCATION.getCode())){
+                InlineKeyboardMarkup markup = KeyboardHelper.buildModelKeyboard(ctx.getModel(), query);
+                String text = CommonCache.accCtxText(callbackQuery.getFrom().getId());
+                return editMarkdown(message, text, markup);
+            }
         }
 
-        //
+        // model
+        if (StrUtil.equals(commands.get(1), "model")){
+            String model = commands.get(2);
+            int query = Integer.parseInt(commands.get(3));
+            AcceptanceContext ctx = CommonCache.getAccCtx(callbackQuery.getFrom().getId());
+
+            InlineKeyboardMarkup markup;
+            if (StrUtil.equals(model, "confirm")) {
+                ctx.setPacket(Boolean.TRUE);
+                markup = KeyboardHelper.buildPacketKeyboard(ctx.getPacket(), query);
+            } else {
+                String name = StrUtil.equals(model, "1") ? "专群" : "面交";
+                markup = KeyboardHelper.buildModelKeyboard(model, query);
+                ctx.setModel(name);
+            }
+            String text = CommonCache.accCtxText(callbackQuery.getFrom().getId());
+            return editMarkdown(message, text, markup);
+        }
+
+        // packet
+        if (StrUtil.equals(commands.get(1), "packet")){
+            String packet = commands.get(2);
+            int query = Integer.parseInt(commands.get(3));
+
+            AcceptanceContext ctx = CommonCache.getAccCtx(callbackQuery.getFrom().getId());
+
+            InlineKeyboardMarkup markup;
+            if (StrUtil.equals(packet, "confirm")) {
+                ctx.setShowSupplement(true);
+                markup = KeyboardHelper.buildSupplementKeyboard(query);
+            } else {
+                ctx.setPacket(Boolean.parseBoolean(packet));
+                markup = KeyboardHelper.buildPacketKeyboard(ctx.getPacket(), query);
+            }
+            String text = CommonCache.accCtxText(callbackQuery.getFrom().getId());
+            return editMarkdown(message, text, markup);
+        }
+
+        // supplement
+        if (StrUtil.equals(commands.get(1), "supplement")){
+            String supplement = commands.get(2);
+            int query = Integer.parseInt(commands.get(3));
+
+            AcceptanceContext ctx = CommonCache.getAccCtx(callbackQuery.getFrom().getId());
+
+            InlineKeyboardMarkup markup;
+            if (StrUtil.equals(supplement, "confirm")) {
+                ctx.setSupplement("无").setShowSupplement(false);
+                markup = KeyboardHelper.buildSupplementKeyboard(query);
+            } else if (StrUtil.equals(supplement, "commit")) {
+                markup = KeyboardHelper.buildSupplementCommitedKeyboard(query);
+            } else if (StrUtil.equals(supplement, "to_query")) {
+                markup = null;
+            } else if (StrUtil.equals(supplement, "commited")) {
+                return answerAlert(callbackQuery, "报备已提交...");
+            } else {
+                markup = null;
+                if (Objects.equals(AddressParam.UNLOADING_PARTNER.getCode(), query)) {
+                    CommonCache.put(callbackQuery.getFrom().getId(), TempEnum.PARTNER_SUPPLEMENT_INPUT);
+                }
+                if (Objects.equals(AddressParam.UNLOADING_LOCATION.getCode(), query)) {
+                    CommonCache.put(callbackQuery.getFrom().getId(), TempEnum.LOCATION_SUPPLEMENT_INPUT);
+                }
+            }
+            String text = CommonCache.accCtxText(callbackQuery.getFrom().getId());
+            return editMarkdown(message, text, markup);
+        }
+
+        // scope
         if (StrUtil.equals(commands.get(1), "scope")) {
             String scope = commands.get(2);
             int query = Integer.parseInt(commands.get(3));

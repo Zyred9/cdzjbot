@@ -24,6 +24,7 @@
     <button class="btn" onclick="loadData(1)">查询</button>
     <button class="btn" onclick="refreshPage()">刷新</button>
     <button class="btn" th:onclick="|location.href='@{/pc/acceptance(userId=${userId})}'|">去承兑报备</button>
+    <button class="btn" th:onclick="|location.href='@{/pc/partner(userId=${userId})}'|">去合作方报备</button>
 </div>
 
 <table>

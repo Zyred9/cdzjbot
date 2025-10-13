@@ -20,7 +20,9 @@ public enum AddressParam {
 
     EXCHANGE(0, "承兑报备"),
     QUERY_EXCHANGE(1, "承兑所在地查询"),
-    QUERY_TEAM(2, "车队所在地查询")
+    QUERY_TEAM(2, "车队所在地查询"),
+    UNLOADING_PARTNER(3, "卸货合作商"),
+    UNLOADING_LOCATION(4, "卸货所在地"),
     ;
 
     @EnumValue

@@ -115,7 +115,7 @@ public class PrivateChatHandler extends AbstractHandler{
                         String.valueOf(recharge.getId()),
                         Scheduled.build(TaskType.RECHARGE, TaskNode.RECHARGE)
                 );
-                return reply(message, recharge.buildText(user.getBalance()));
+                return markdownReply(message, recharge.buildText(user.getBalance()));
             }
             CommonCache.put(message.getFrom().getId(), TempEnum.INPUT_PUBLISH_TEXT);
             return markdown(message, Constants.P_C_PUBLISH_TEXT);
@@ -142,6 +142,18 @@ public class PrivateChatHandler extends AbstractHandler{
         if (StrUtil.equals(text, "车队所在地")) {
             List<Address> address = this.addressService.selectProvince();
             InlineKeyboardMarkup markup = KeyboardHelper.buildProvinceKeyboard(address, AddressParam.QUERY_TEAM.getCode());
+            return markdownReply(message, "（请详细到区县）例：浙江省杭州市西湖区", markup);
+        }
+
+        if (StrUtil.equals(text, "卸货合作商")) {
+            List<Address> address = this.addressService.selectProvince();
+            InlineKeyboardMarkup markup = KeyboardHelper.buildProvinceKeyboard(address, AddressParam.UNLOADING_PARTNER.getCode());
+            return markdownReply(message, "（请详细到区县）例：浙江省杭州市西湖区", markup);
+        }
+
+        if (StrUtil.equals(text, "卸货所在地")) {
+            List<Address> address = this.addressService.selectProvince();
+            InlineKeyboardMarkup markup = KeyboardHelper.buildProvinceKeyboard(address, AddressParam.UNLOADING_LOCATION.getCode());
             return markdownReply(message, "（请详细到区县）例：浙江省杭州市西湖区", markup);
         }
 
@@ -255,6 +267,21 @@ public class PrivateChatHandler extends AbstractHandler{
             } catch (NumberFormatException ex) {
                 return ok(message, "请输入整数");
             }
+        }
+
+        if (Objects.equals(temp, TempEnum.PARTNER_SUPPLEMENT_INPUT)
+                || Objects.equals(temp, TempEnum.LOCATION_SUPPLEMENT_INPUT)) {
+            AcceptanceContext ctx = CommonCache.getAccCtx(message.getFrom().getId());
+            ctx.setSupplement(message.getText()).setShowSupplement(false);
+
+            InlineKeyboardMarkup markup;
+            if (Objects.equals(temp, TempEnum.PARTNER_SUPPLEMENT_INPUT)) {
+                markup = KeyboardHelper.buildCommitSupplementReportKeyboard(AddressParam.UNLOADING_PARTNER.getCode());
+            } else {
+                markup = KeyboardHelper.buildCommitSupplementQueryKeyboard(AddressParam.UNLOADING_LOCATION.getCode());
+            }
+            String text = CommonCache.accCtxText(message.getFrom().getId());
+            return markdown(message, text, markup);
         }
 
 

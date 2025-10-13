@@ -61,9 +61,20 @@ public class AcceptanceContext {
     private boolean showFollow;
     private Boolean follow;
 
-    // 附加 承兑所在地 范围查询等待输入
+
+    ////// 承兑所在地 范围查询等待输入  //////////
     private boolean showScope;
     private Integer scope;
+
+    ////// 卸货合作商/卸货所在地  //////////
+    // 模式
+    private String model;
+    // 是否要求钱包在现场
+    private Boolean packet;
+    // 补充要求
+    private boolean showSupplement;
+    private String supplement;
+
 
     public AcceptanceCtx buildCtx () {
         return new AcceptanceCtx()
@@ -206,6 +217,21 @@ public class AcceptanceContext {
             sb.append("范围：").append(ctx.getScope()).append("\n");
         }
 
+        ////// 卸货合作商/卸货所在地  //////////
+        if (StrUtil.isNotBlank(ctx.getModel())) {
+            sb.append("模式：").append(ctx.getModel()).append("\n");
+        }
+        if (Objects.nonNull(ctx.getPacket())) {
+            sb.append("是否要求钱包在现场：").append(ctx.getPacket() ? "是" : "否").append("\n");
+        }
+
+        if (StrUtil.isBlank(ctx.getSupplement())) {
+            if (ctx.isShowSupplement()) {
+                sb.append("补充要求：选填(无要求则点击跳过)").append("\n");
+            }
+        } else {
+            sb.append("补充要求：").append(ctx.getSupplement()).append("\n");
+        }
         return sb.toString();
     }
 

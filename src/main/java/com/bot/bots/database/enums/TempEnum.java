@@ -22,7 +22,10 @@ public enum TempEnum {
     INPUT_INTERVAL(2, "输入接单额区间"),
     CAR_TEAM_INPUT(3, "输入车队报备信息"),
 
-    EXCHANGE_INPUT_CUSTOM_SCOPE(4, "承兑所在地查询自定义输入范围")
+    EXCHANGE_INPUT_CUSTOM_SCOPE(4, "承兑所在地查询自定义输入范围"),
+    PARTNER_SUPPLEMENT_INPUT(5, "卸货合作商，输入补充要求"),
+    LOCATION_SUPPLEMENT_INPUT(6, "卸货所在地，输入补充要求")
+
     ;
 
     @EnumValue
