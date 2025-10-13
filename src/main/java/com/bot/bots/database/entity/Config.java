@@ -7,6 +7,8 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 
+import java.util.List;
+
 /**
  * <p>
  *
@@ -32,4 +34,6 @@ public class Config {
     private String selfText;
     private String selfKeyboard;
 
+    /** 页面可编辑&删除的人 **/
+    private List<Long> editable;
 }

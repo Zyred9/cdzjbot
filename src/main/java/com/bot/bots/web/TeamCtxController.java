@@ -35,6 +35,41 @@ public class TeamCtxController {
     }
 
     /**
+     * 根据ID查询
+     */
+    @GetMapping("/api/team/{id}")
+    @ResponseBody
+    public TeamCtx getById(@PathVariable Long id) {
+        return teamCtxService.getById(id);
+    }
+
+    /**
+     * 根据ID更新
+     * <pre>
+     * 请求示例：
+     * PUT /api/team/1
+     * Content-Type: application/json
+     * Body: TeamCtx JSON（包含需要更新的字段）
+     * </pre>
+     */
+    @PutMapping("/api/team/{id}")
+    @ResponseBody
+    public boolean update(@PathVariable Long id, @RequestBody TeamCtx body) {
+        body.setId(id);
+        return teamCtxService.updateById(body);
+    }
+
+    /**
+     * 根据ID删除
+     */
+    @DeleteMapping("/api/team/{id}")
+    @ResponseBody
+    public boolean delete(@PathVariable Long id) {
+        return teamCtxService.removeById(id);
+    }
+
+
+    /**
      * <pre>
      * 查询参数:
      * - pageNo, pageSize

@@ -35,6 +35,41 @@ public class AcceptanceCtxController {
     }
 
     /**
+     * 根据ID查询
+     */
+    @GetMapping("/api/acceptance/{id}")
+    @ResponseBody
+    public AcceptanceCtx getById(@PathVariable Long id) {
+        return acceptanceCtxService.getById(id);
+    }
+
+    /**
+     * 根据ID更新
+     * <pre>
+     * 请求示例：
+     * PUT /api/acceptance/1
+     * Content-Type: application/json
+     * Body: AcceptanceCtx JSON（包含需要更新的字段）
+     * </pre>
+     */
+    @PutMapping("/api/acceptance/{id}")
+    @ResponseBody
+    public boolean update(@PathVariable Long id, @RequestBody AcceptanceCtx body) {
+        body.setId(id);
+        return acceptanceCtxService.updateById(body);
+    }
+
+    /**
+     * 根据ID删除
+     */
+    @DeleteMapping("/api/acceptance/{id}")
+    @ResponseBody
+    public boolean delete(@PathVariable Long id) {
+        return acceptanceCtxService.removeById(id);
+    }
+
+
+    /**
      * <pre>
      * 查询参数:
      * - pageNo, pageSize

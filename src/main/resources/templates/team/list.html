@@ -41,7 +41,9 @@
         <th>联系方式</th>
         <th>是否跟车</th>
         <th>备注</th>
+        <th>操作</th>
     </tr>
+
     </thead>
     <tbody id="tbody"></tbody>
 </table>
@@ -94,15 +96,115 @@
                 <td>${it.phone ?? ''}</td>
                 <td>${it.followCar ?? ''}</td>
                 <td>${it.marks ?? ''}</td>
+                <td>
+                    <button class="btn" onclick="editRow(${it.id})">编辑</button>
+                    <button class="btn" style="background:#ff4d4f" onclick="deleteRow(${it.id})">删除</button>
+                </td>
             </tr>
         `).join('');
+
         document.getElementById('pageInfo').innerText = `第 ${pageNo} / ${pages} 页，共 ${total} 条`;
     }
 
     function prev(){ if(pageNo > 1) loadData(pageNo - 1); }
     function next(){ if(pageNo < pages) loadData(pageNo + 1); }
 
+    // ======= 可视化编辑弹窗逻辑 =======
+    let editTeam = null;
+
+    function openEditTeam() {
+        document.getElementById('teamMask').style.display = 'block';
+    }
+    function closeEditTeam() {
+        document.getElementById('teamMask').style.display = 'none';
+        editTeam = null;
+    }
+
+    async function editRow(id){
+        const resp = await fetch('/api/team/' + id);
+        const item = await resp.json();
+        editTeam = item;
+
+        setVal('t_username', item.username || '');
+        setVal('t_nickname', item.nickname || '');
+        setVal('t_base', item.base || '');
+        setVal('t_teamType', item.teamType || '');
+        setVal('t_hasSafe', item.hasSafe || '');
+        setVal('t_amount', item.amount || '');
+        setVal('t_address', item.address || '');
+        setVal('t_phone', item.phone || '');
+        setVal('t_followCar', item.followCar || '');
+        setVal('t_marks', item.marks || '');
+
+        openEditTeam();
+    }
+    function setVal(id, v){ const el = document.getElementById(id); if(el) el.value = v; }
+
+    async function saveTeam(){
+        if(!editTeam) return;
+        const body = { ...editTeam };
+        body.username = document.getElementById('t_username').value.trim();
+        body.nickname = document.getElementById('t_nickname').value.trim();
+        body.base = document.getElementById('t_base').value.trim();
+        body.teamType = document.getElementById('t_teamType').value.trim();
+        body.hasSafe = document.getElementById('t_hasSafe').value.trim();
+        body.amount = document.getElementById('t_amount').value.trim();
+        body.address = document.getElementById('t_address').value.trim();
+        body.phone = document.getElementById('t_phone').value.trim();
+        body.followCar = document.getElementById('t_followCar').value.trim();
+        body.marks = document.getElementById('t_marks').value.trim();
+
+        const putResp = await fetch('/api/team/' + body.id, {
+            method: 'PUT',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify(body)
+        });
+        const ok = await putResp.json();
+        if(ok){ alert('更新成功'); closeEditTeam(); refreshPage(); } else { alert('更新失败'); }
+    }
+
+    async function deleteRow(id){
+        if(!confirm('确认删除该记录？')) return;
+        const resp = await fetch('/api/team/' + id, { method: 'DELETE' });
+        const ok = await resp.json();
+        if(ok){ alert('删除成功'); refreshPage(); } else { alert('删除失败'); }
+    }
+
     loadData(1);
 </script>
+
+<!-- 编辑弹窗 -->
+<style>
+    .mask { display:none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 999; }
+    .modal { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 720px; background: #fff; border-radius: 10px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.15); }
+    .modal-hd { padding: 12px 16px; background: #f6f8fa; font-weight: 600; }
+    .modal-bd { padding: 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .modal-ft { padding: 12px 16px; text-align: right; background: #fafafa; }
+    .form-item { display: flex; flex-direction: column; gap: 6px; }
+    .label { color: #666; font-size: 13px; }
+    .ipt, .txt { width: 100%; padding: 8px 10px; border: 1px solid #dcdfe6; border-radius: 6px; outline: none; }
+</style>
+<div id="teamMask" class="mask">
+    <div class="modal">
+        <div class="modal-hd">编辑车队报备</div>
+        <div class="modal-bd">
+            <div class="form-item"><span class="label">用户名</span><input id="t_username" class="ipt" placeholder="用户名"/></div>
+            <div class="form-item"><span class="label">用户昵称</span><input id="t_nickname" class="ipt" placeholder="用户昵称"/></div>
+            <div class="form-item"><span class="label">底料</span><input id="t_base" class="ipt" placeholder="底料"/></div>
+            <div class="form-item"><span class="label">车队类型</span><input id="t_teamType" class="ipt" placeholder="车队类型"/></div>
+            <div class="form-item"><span class="label">是否有安全员</span><input id="t_hasSafe" class="ipt" placeholder="是/否"/></div>
+            <div class="form-item"><span class="label">具体金额</span><input id="t_amount" class="ipt" placeholder="具体金额"/></div>
+            <div class="form-item"><span class="label">地址</span><input id="t_address" class="ipt" placeholder="地址"/></div>
+            <div class="form-item"><span class="label">联系方式</span><input id="t_phone" class="ipt" placeholder="联系方式"/></div>
+            <div class="form-item" style="grid-column: span 2;"><span class="label">是否跟车</span><input id="t_followCar" class="ipt" placeholder="是否跟车"/></div>
+            <div class="form-item" style="grid-column: span 2;"><span class="label">备注</span><input id="t_marks" class="ipt" placeholder="备注"/></div>
+        </div>
+        <div class="modal-ft">
+            <button class="btn" onclick="saveTeam()">保存</button>
+            <button class="btn" style="background:#999" onclick="closeEditTeam()">取消</button>
+        </div>
+    </div>
+</div>
+
 </body>
 </html>

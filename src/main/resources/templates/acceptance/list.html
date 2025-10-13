@@ -43,7 +43,9 @@
         <th>是否驻点</th>
         <th>是否移动</th>
         <th>是否跟车</th>
+        <th>操作</th>
     </tr>
+
     </thead>
     <tbody id="tbody"></tbody>
 </table>
@@ -108,15 +110,154 @@
                 <td>${toYesNo(it.station)}</td>
                 <td>${toYesNo(it.move)}</td>
                 <td>${toYesNo(it.follow)}</td>
+                <td>
+                    <button class="btn" onclick="editRow(${it.id})">编辑</button>
+                    <button class="btn" style="background:#ff4d4f" onclick="deleteRow(${it.id})">删除</button>
+                </td>
             </tr>
         `).join('');
+
         document.getElementById('pageInfo').innerText = `第 ${pageNo} / ${pages} 页，共 ${total} 条`;
     }
 
     function prev(){ if(pageNo > 1) loadData(pageNo - 1); }
     function next(){ if(pageNo < pages) loadData(pageNo + 1); }
 
+    // ======= 可视化编辑弹窗逻辑 =======
+    let editCache = null;
+
+    function openEditModal() {
+        document.getElementById('editMask').style.display = 'block';
+    }
+    function closeEditModal() {
+        document.getElementById('editMask').style.display = 'none';
+        editCache = null;
+    }
+
+    async function editRow(id){
+        const resp = await fetch('/api/acceptance/' + id);
+        const item = await resp.json();
+        editCache = item;
+
+        // 赋值表单
+        setVal('e_username', item.username || '');
+        setVal('e_nickname', item.nickname || '');
+        setVal('e_address', item.address || '');
+        setVal('e_intervalInput', item.intervalInput || '');
+        setVal('e_rate', item.rate ?? '');
+
+        // 数组/枚举类：使用逗号分隔输入，避免JSON
+        setVal('e_categories', Array.isArray(item.categories) ? item.categories.map(x => (typeof x === 'object' ? (x.desc || x.name || '') : x)).filter(Boolean).join('，') : '');
+        setVal('e_forbids', Array.isArray(item.forbids) ? item.forbids.map(x => (typeof x === 'object' ? (x.desc || x.name || '') : x)).filter(Boolean).join('，') : '');
+        setVal('e_material', (typeof item.material === 'object') ? (item.material.desc || item.material.name || '') : (item.material || ''));
+
+        setChecked('e_airborne', !!item.airborne);
+        setChecked('e_station', !!item.station);
+        setChecked('e_move', !!item.move);
+        setChecked('e_follow', !!item.follow);
+
+        openEditModal();
+    }
+
+    function setVal(id, v){ const el = document.getElementById(id); if(el) el.value = v; }
+    function setChecked(id, v){ const el = document.getElementById(id); if(el) el.checked = v; }
+
+    function splitCsvToArray(v){
+        if(!v) return [];
+        // 支持中文顿号、中文逗号、英文逗号分隔
+        return v.split(/[,，、]/).map(s => s.trim()).filter(Boolean);
+    }
+
+    async function saveEdit(){
+        if(!editCache) return;
+        const body = { ...editCache };
+
+        body.username = document.getElementById('e_username').value.trim();
+        body.nickname = document.getElementById('e_nickname').value.trim();
+        body.address = document.getElementById('e_address').value.trim();
+        body.intervalInput = document.getElementById('e_intervalInput').value.trim();
+        const rateStr = document.getElementById('e_rate').value.trim();
+        body.rate = rateStr === '' ? null : rateStr;
+
+        // 解析“逗号分隔”的多值字段
+        const cats = document.getElementById('e_categories').value.trim();
+        const forb = document.getElementById('e_forbids').value.trim();
+        const mat = document.getElementById('e_material').value.trim();
+
+        body.categories = splitCsvToArray(cats);
+        body.forbids = splitCsvToArray(forb);
+        body.material = mat || null;
+
+        body.airborne = document.getElementById('e_airborne').checked;
+        body.station = document.getElementById('e_station').checked;
+        body.move = document.getElementById('e_move').checked;
+        body.follow = document.getElementById('e_follow').checked;
+
+        const putResp = await fetch('/api/acceptance/' + body.id, {
+            method: 'PUT',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify(body)
+        });
+        const ok = await putResp.json();
+        if(ok){ alert('更新成功'); closeEditModal(); refreshPage(); } else { alert('更新失败'); }
+    }
+
+    async function deleteRow(id){
+        if(!confirm('确认删除该记录？')) return;
+        const resp = await fetch('/api/acceptance/' + id, { method: 'DELETE' });
+        const ok = await resp.json();
+        if(ok){ alert('删除成功'); refreshPage(); } else { alert('删除失败'); }
+    }
+
     loadData(1);
 </script>
+
+<!-- 编辑弹窗 -->
+<style>
+    .mask { display:none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 999; }
+    .modal { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 720px; background: #fff; border-radius: 10px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.15); }
+    .modal-hd { padding: 12px 16px; background: #f6f8fa; font-weight: 600; }
+    .modal-bd { padding: 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .modal-ft { padding: 12px 16px; text-align: right; background: #fafafa; }
+    .form-item { display: flex; flex-direction: column; gap: 6px; }
+    .label { color: #666; font-size: 13px; }
+    .ipt, .txt { width: 100%; padding: 8px 10px; border: 1px solid #dcdfe6; border-radius: 6px; outline: none; }
+    .switch { width: 18px; height: 18px; }
+</style>
+<div id="editMask" class="mask">
+    <div class="modal">
+        <div class="modal-hd">编辑承兑报备</div>
+        <div class="modal-bd">
+            <div class="form-item"><span class="label">用户名</span><input id="e_username" class="ipt" placeholder="用户名"/></div>
+            <div class="form-item"><span class="label">用户昵称</span><input id="e_nickname" class="ipt" placeholder="用户昵称"/></div>
+            <div class="form-item"><span class="label">地址</span><input id="e_address" class="ipt" placeholder="地址"/></div>
+            <div class="form-item"><span class="label">区间值</span><input id="e_intervalInput" class="ipt" placeholder="区间值"/></div>
+            <div class="form-item"><span class="label">汇率</span><input id="e_rate" class="ipt" placeholder="汇率，例：6.50"/></div>
+
+            <div class="form-item" style="grid-column: span 2;">
+                <span class="label">分类（多项，逗号分隔）</span>
+                <input id="e_categories" class="ipt" placeholder="示例：酒水, 现金"/>
+            </div>
+            <div class="form-item" style="grid-column: span 2;">
+                <span class="label">禁止（多项，逗号分隔）</span>
+                <input id="e_forbids" class="ipt" placeholder="示例：电诈, 违禁品"/>
+            </div>
+            <div class="form-item" style="grid-column: span 2;">
+                <span class="label">料性（单项）</span>
+                <input id="e_material" class="ipt" placeholder="示例：酒水"/>
+            </div>
+
+            <div class="form-item"><label class="label"><input id="e_airborne" type="checkbox" class="switch"/> 是否空降</label></div>
+            <div class="form-item"><label class="label"><input id="e_station" type="checkbox" class="switch"/> 是否驻点</label></div>
+            <div class="form-item"><label class="label"><input id="e_move" type="checkbox" class="switch"/> 是否移动</label></div>
+            <div class="form-item"><label class="label"><input id="e_follow" type="checkbox" class="switch"/> 是否跟车</label></div>
+        </div>
+        <div class="modal-ft">
+            <button class="btn" onclick="saveEdit()">保存</button>
+            <button class="btn" style="background:#999" onclick="closeEditModal()">取消</button>
+        </div>
+    </div>
+</div>
+
 </body>
 </html>

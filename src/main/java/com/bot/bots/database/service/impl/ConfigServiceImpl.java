@@ -8,6 +8,7 @@ import com.bot.bots.database.service.ConfigService;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -32,6 +33,7 @@ public class ConfigServiceImpl extends ServiceImpl<ConfigMapper, Config> impleme
             config = new Config()
                     .setCustomText("")
                     .setCustomKeyboard("{}")
+                    .setEditable(List.of())
                     .setChatId(this.properties.getBackgroundId());
 
             this.baseMapper.insert(config);
