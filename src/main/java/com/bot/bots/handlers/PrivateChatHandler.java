@@ -5,28 +5,22 @@ import com.bot.bots.beans.cache.CommonCache;
 import com.bot.bots.beans.caffeine.CountdownCaffeine;
 import com.bot.bots.beans.chat.ChatQueryHandler;
 import com.bot.bots.beans.view.Scheduled;
+import com.bot.bots.beans.view.ctx.AcceptanceContext;
 import com.bot.bots.config.BotProperties;
 import com.bot.bots.config.Constants;
 import com.bot.bots.database.entity.*;
-import com.bot.bots.database.enums.ExposeStatus;
-import com.bot.bots.database.enums.TaskNode;
-import com.bot.bots.database.enums.TaskType;
-import com.bot.bots.database.enums.TempEnum;
-import com.bot.bots.database.service.ConfigService;
-import com.bot.bots.database.service.PublishService;
-import com.bot.bots.database.service.RechargeService;
-import com.bot.bots.database.service.UserService;
+import com.bot.bots.database.enums.*;
+import com.bot.bots.database.service.*;
 import com.bot.bots.helper.DecimalHelper;
 import com.bot.bots.helper.KeyboardHelper;
 import com.bot.bots.helper.StrHelper;
 import com.bot.bots.sender.AsyncSender;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.methods.botapimethods.BotApiMethod;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.message.Message;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
-
-import javax.annotation.Resource;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -42,21 +36,24 @@ import java.util.Objects;
  * @since v 0.0.1
  */
 @Component
+@RequiredArgsConstructor
 public class PrivateChatHandler extends AbstractHandler{
 
-    @Resource private UserService userService;
-    @Resource private BotProperties properties;
-    @Resource private ConfigService configService;
-    @Resource private PublishService publishService;
-    @Resource private RechargeService rechargeService;
-    @Resource private ChatQueryHandler chatQueryHandler;
-    @Resource private com.bot.bots.database.service.ExposeService exposeService;
+    private final UserService userService;
+    private final BotProperties properties;
+    private final ConfigService configService;
+    private final ExposeService exposeService;
+    private final PublishService publishService;
+    private final AddressService addressService;
+    private final TeamCtxService teamCtxService;
+    private final RechargeService rechargeService;
+    private final ChatQueryHandler chatQueryHandler;
 
     @Override
     public boolean support(Update update) {
         return update.hasMessage()
                 && update.getMessage().hasText()
-                && update.getMessage().isUserMessage();
+            && update.getMessage().isUserMessage();
     }
 
     @Override
@@ -124,6 +121,30 @@ public class PrivateChatHandler extends AbstractHandler{
             return markdown(message, Constants.P_C_PUBLISH_TEXT);
         }
 
+        if (StrUtil.equals(text, "承兑报备")) {
+            List<Address> address = this.addressService.selectProvince();
+            InlineKeyboardMarkup markup = KeyboardHelper.buildProvinceKeyboard(address, AddressParam.EXCHANGE.getCode());
+            return ok(message, "（请详细到区县）例：浙江省杭州市西湖区", markup);
+        }
+
+        if (StrUtil.equals(text, "车队报备")) {
+            CommonCache.put(message.getFrom().getId(), TempEnum.CAR_TEAM_INPUT);
+            return markdownReply(message, Constants.CAT_TEAM_TEXT);
+        }
+
+
+        if (StrUtil.equals(text, "承兑所在地")) {
+            List<Address> address = this.addressService.selectProvince();
+            InlineKeyboardMarkup markup = KeyboardHelper.buildProvinceKeyboard(address, AddressParam.QUERY_EXCHANGE.getCode());
+            return markdownReply(message, "（请详细到区县）例：浙江省杭州市西湖区", markup);
+        }
+
+        if (StrUtil.equals(text, "车队所在地")) {
+            List<Address> address = this.addressService.selectProvince();
+            InlineKeyboardMarkup markup = KeyboardHelper.buildProvinceKeyboard(address, AddressParam.QUERY_TEAM.getCode());
+            return markdownReply(message, "（请详细到区县）例：浙江省杭州市西湖区", markup);
+        }
+
         // 用户有缓存
         if (CommonCache.containsKey(message.getFrom().getId())) {
             return this.processorCache(message);
@@ -138,7 +159,7 @@ public class PrivateChatHandler extends AbstractHandler{
         TempEnum temp = CommonCache.getIfRemove(message.getFrom().getId());
         if (Objects.equals(temp, TempEnum.INPUT_PUBLISH_TEXT)) {
             String text = message.getText();
-            Map<String, String> parsed = StrHelper.parsePublishText(text);
+            Map<String, String> parsed = StrHelper.parseStrToMap(text);
             boolean a = parsed.containsKey("供需方");
             boolean b = parsed.containsKey("项目名称");
             boolean c = parsed.containsKey("项目介绍");
@@ -162,7 +183,7 @@ public class PrivateChatHandler extends AbstractHandler{
 
         if (Objects.equals(temp, TempEnum.INPUT_PZ_EXPOSE_TEXT)) {
             String text = message.getText();
-            Map<String, String> parsed = StrHelper.parsePublishText(text);
+            Map<String, String> parsed = StrHelper.parseStrToMap(text);
 
             boolean needId = parsed.containsKey("骗子ID");
             boolean needNick = parsed.containsKey("骗子昵称");
@@ -187,6 +208,55 @@ public class PrivateChatHandler extends AbstractHandler{
 
             return reply(message, "✅已提交审核，审核中...");
         }
+
+        if (Objects.equals(temp, TempEnum.INPUT_INTERVAL)) {
+            String interval = message.getText();
+            CommonCache.getAccCtx(message.getFrom().getId())
+                    .setWaitInputInterval(Boolean.FALSE)
+                    .setDoneInputInterval(Boolean.TRUE)
+                    .setIntervalInput(interval)
+                    .setRate(BigDecimal.valueOf(0.05));
+
+            InlineKeyboardMarkup markup = KeyboardHelper.buildRateIncrementKeyboard();
+            String text = CommonCache.accCtxText(message.getFrom().getId());
+            AsyncSender.async(delete(message));
+            return markdown(message, text, markup);
+        }
+
+        if (Objects.equals(temp, TempEnum.CAR_TEAM_INPUT)) {
+            Map<String, String> map = StrHelper.parseStrToMap(message.getText());
+
+            boolean a = map.containsKey("底料");
+            boolean b = map.containsKey("车队类型");
+            boolean c = map.containsKey("所在省市");
+
+            boolean e = a & b & c;
+            if (!e) {
+                return reply(message, "（底料、车队类型、所在省市）必填！！");
+            }
+
+            TeamCtx tc = TeamCtx.build(map, message.getFrom());
+            this.teamCtxService.save(tc);
+            return markdownReply(message, "报备成功！");
+        }
+
+        // 承兑所在地查询自定义输入范围
+        if (Objects.equals(temp, TempEnum.EXCHANGE_INPUT_CUSTOM_SCOPE)) {
+            try {
+                int scope = Integer.parseInt(message.getText());
+                AcceptanceContext ctx = CommonCache.getAccCtx(message.getFrom().getId());
+                ctx.setScope(scope);
+
+                InlineKeyboardMarkup markup = KeyboardHelper.buildScopeKeyboard(
+                        AddressParam.QUERY_EXCHANGE.getCode(), ctx.getScope());
+
+                String text = CommonCache.accCtxText(message.getFrom().getId());
+                return markdown(message, text, markup);
+            } catch (NumberFormatException ex) {
+                return ok(message, "请输入整数");
+            }
+        }
+
 
         return null;
     }

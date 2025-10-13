@@ -18,6 +18,11 @@ public enum TempEnum {
 
     INPUT_PUBLISH_TEXT(0, "输入供需发布"),
     INPUT_PZ_EXPOSE_TEXT(1, "输入骗子曝光"),
+
+    INPUT_INTERVAL(2, "输入接单额区间"),
+    CAR_TEAM_INPUT(3, "输入车队报备信息"),
+
+    EXCHANGE_INPUT_CUSTOM_SCOPE(4, "承兑所在地查询自定义输入范围")
     ;
 
     @EnumValue

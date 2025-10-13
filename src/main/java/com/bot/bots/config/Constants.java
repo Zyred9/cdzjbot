@@ -103,6 +103,18 @@ public interface Constants {
     String TRANSFER_QUERY = """
             https://apilist.tronscanapi.com/api/filter/trc20/transfers?sort=-timestamp&count=true&limit=20&start=0&filterTokenValue=0&relatedAddress={}&start_timestamp={}
             """;
+    String CAT_TEAM_TEXT = """
+            车队报备（请将下列内容编辑后提交即可）
+            
+            `底料：（自己填）
+            车队类型：（柜台/滴滴/上门/U商/证券/老人）
+            安全员：有and无
+            具体金额：
+            所在省市：
+            联系方式：
+            是否需要跟车：
+            备注`
+            """;
 }
 
 

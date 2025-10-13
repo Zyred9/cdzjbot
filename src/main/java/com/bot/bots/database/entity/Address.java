@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
+
 import java.time.LocalDateTime;
 
 /**
@@ -36,4 +37,5 @@ public class Address {
     private String path;
 
     private LocalDateTime createdAt;
+
 }

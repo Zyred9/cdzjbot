@@ -21,6 +21,8 @@ import java.util.Map;
 @ConfigurationProperties(prefix = "bots.config")
 public class BotProperties {
 
+    public static String filename = "./cache.json";
+
     private boolean logs;
 
     /** 代理 **/
@@ -45,6 +47,7 @@ public class BotProperties {
     /** 地址 **/
     private String address;
     private List<Long> channels;
+    private String apiKey;
 
 
     public String getToken () {

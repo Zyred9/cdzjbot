@@ -10,6 +10,8 @@ import com.bot.bots.database.mapper.AddressMapper;
 import com.bot.bots.database.service.AddressService;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 /**
  * 地址库服务实现（冗余字段模糊查询 + 分页）
  *
@@ -38,5 +40,53 @@ public class AddressServiceImpl extends ServiceImpl<AddressMapper, Address> impl
         var qw = Wrappers.<Address>lambdaQuery()
                 .like(StrUtil.isNotBlank(countyCode), Address::getCountyCode, countyCode);
         return this.baseMapper.selectPage(page, qw);
+    }
+
+    @Override
+    public List<Address> selectProvince() {
+        return this.baseMapper.selectProvince();
+    }
+
+    @Override
+    public Page <Address> selectCity(int index, String provinceCode) {
+        return this.baseMapper.selectCity(
+                Page.of(index, 10),
+                provinceCode
+        );
+    }
+
+    @Override
+    public Page<Address> selectCounty(int index, String cityCode) {
+        return this.baseMapper.selectCounty(
+                Page.of(index, 10),
+                cityCode
+        );
+    }
+
+    @Override
+    public Address selectOneCounty(String countyCode) {
+        return this.baseMapper.selectOne(
+                Wrappers.<Address>lambdaQuery()
+                        .eq(Address::getCountyCode, countyCode)
+                        .last("limit 1")
+        );
+    }
+
+    @Override
+    public Address selectOneProvince(String provinceCode) {
+        return this.baseMapper.selectOne(
+                Wrappers.<Address>lambdaQuery()
+                        .eq(Address::getProvinceCode, provinceCode)
+                        .last("limit 1")
+        );
+    }
+
+    @Override
+    public Address selectOneCity(String cityCode) {
+        return this.baseMapper.selectOne(
+                Wrappers.<Address>lambdaQuery()
+                        .eq(Address::getCityCode, cityCode)
+                        .last("limit 1")
+        );
     }
 }

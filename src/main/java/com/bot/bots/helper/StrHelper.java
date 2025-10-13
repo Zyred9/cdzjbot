@@ -60,7 +60,7 @@ public class StrHelper {
         return -1;
     }
 
-    public static Map<String, String> parsePublishText(String text) {
+    public static Map<String, String> parseStrToMap(String text) {
         List<String> split = StrUtil.split(text, "\n");
 
         Map<String, String> map = new HashMap<>(split.size());
