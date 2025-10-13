@@ -1,12 +1,16 @@
 package com.bot.bots.database.entity;
 
+import cn.hutool.core.collection.CollUtil;
 import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -20,7 +24,7 @@ import java.util.List;
 @Setter
 @Getter
 @Accessors(chain = true)
-@TableName("t_config")
+@TableName(value = "t_config", autoResultMap = true)
 public class Config {
 
     @TableId(type = IdType.INPUT)
@@ -35,5 +39,11 @@ public class Config {
     private String selfKeyboard;
 
     /** 页面可编辑&删除的人 **/
+    @TableField(typeHandler = JacksonTypeHandler.class)
     private List<Long> editable;
+
+
+    public boolean hasEdit (Long userId) {
+        return CollUtil.contains(this.editable, userId);
+    }
 }

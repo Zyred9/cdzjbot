@@ -48,6 +48,7 @@ public class BotProperties {
     private String address;
     private List<Long> channels;
     private String apiKey;
+    private String webUrl;
 
 
     public String getToken () {

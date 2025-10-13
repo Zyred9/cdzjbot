@@ -115,7 +115,6 @@ public class BackgroundHandler extends AbstractHandler {
 
         // 余额#用户id#+100
         // 余额#用户id#-100
-
         if (StrUtil.equals(commands.get(0), "余额")) {
             long userId = Long.parseLong(commands.get(1));
             BigDecimal amount = new BigDecimal(commands.get(2));
@@ -126,9 +125,11 @@ public class BackgroundHandler extends AbstractHandler {
             return reply(message);
         }
 
-
-
-
+        // 页面地址
+        if (StrUtil.equals(commands.get(0), "页面地址")) {
+            String url = this.properties.getWebUrl() + message.getFrom().getId();
+            return ok(message, url);
+        }
 
         return null;
     }

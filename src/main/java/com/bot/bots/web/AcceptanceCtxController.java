@@ -1,13 +1,19 @@
 package com.bot.bots.web;
 
+import cn.hutool.core.collection.CollUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.bot.bots.database.entity.AcceptanceCtx;
+import com.bot.bots.database.entity.Config;
 import com.bot.bots.database.service.AcceptanceCtxService;
+import com.bot.bots.database.service.ConfigService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Collections;
+import java.util.List;
 
 /**
  * 承兑报备数据 PC端展示 Controller
@@ -27,11 +33,17 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class AcceptanceCtxController {
 
+    private final ConfigService configService;
     private final AcceptanceCtxService acceptanceCtxService;
 
     @GetMapping("/pc/acceptance")
-    public String pageAcceptance(Model model) {
-        return "acceptance/list";
+    public String pageAcceptance(Model model, @RequestParam(value = "userId", required = false, defaultValue = "0") Long userId) {
+        Config config = this.configService.queryConfig();
+        if (config.hasEdit(userId)) {
+            model.addAttribute("userId", userId);
+            return "acceptance/list";
+        }
+        return "error/error";
     }
 
     /**
@@ -55,7 +67,6 @@ public class AcceptanceCtxController {
     @PutMapping("/api/acceptance/{id}")
     @ResponseBody
     public boolean update(@PathVariable Long id, @RequestBody AcceptanceCtx body) {
-        body.setId(id);
         return acceptanceCtxService.updateById(body);
     }
 
@@ -64,7 +75,7 @@ public class AcceptanceCtxController {
      */
     @DeleteMapping("/api/acceptance/{id}")
     @ResponseBody
-    public boolean delete(@PathVariable Long id) {
+    public boolean delete(@PathVariable Long id, @RequestParam("userId") Long userId) {
         return acceptanceCtxService.removeById(id);
     }
 
