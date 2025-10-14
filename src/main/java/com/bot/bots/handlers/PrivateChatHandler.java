@@ -13,6 +13,7 @@ import com.bot.bots.database.enums.*;
 import com.bot.bots.database.service.*;
 import com.bot.bots.helper.DecimalHelper;
 import com.bot.bots.helper.KeyboardHelper;
+import com.bot.bots.helper.MapUtil;
 import com.bot.bots.helper.StrHelper;
 import com.bot.bots.sender.AsyncSender;
 import lombok.RequiredArgsConstructor;
@@ -39,6 +40,7 @@ import java.util.Objects;
 @RequiredArgsConstructor
 public class PrivateChatHandler extends AbstractHandler{
 
+    private final MapUtil mapUtil;
     private final UserService userService;
     private final BotProperties properties;
     private final ConfigService configService;
@@ -246,6 +248,9 @@ public class PrivateChatHandler extends AbstractHandler{
             }
 
             TeamCtx tc = TeamCtx.build(map, message.getFrom());
+            String location = this.mapUtil.location(tc.getAddress());
+            tc.setLocation(location);
+
             this.teamCtxService.save(tc);
             return markdownReply(message, "报备成功！");
         }

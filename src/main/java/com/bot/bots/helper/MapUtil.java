@@ -9,6 +9,7 @@ import cn.hutool.json.JSONArray;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
 import com.bot.bots.config.BotProperties;
+import com.bot.bots.database.entity.AcceptanceCtx;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.OkHttpClient;
@@ -17,7 +18,10 @@ import okhttp3.Response;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Objects;
+import java.util.function.Consumer;
+import java.util.function.Function;
 
 /**
  * 高德地图 Web 服务工具类
@@ -42,16 +46,18 @@ public class MapUtil {
 
 
     /**
-     * 路径规划（驾车）
-     * <pre>
-     * 调用示例：
-     * String distanceMeters = mapUtil.driving("116.481028,39.989643", "116.434446,39.90816");
-     * </pre>
-     * @param origin       起点经纬度，"lon,lat"
-     * @param destination  终点经纬度，"lon,lat"
-     * @return             距离（单位：米）,失败返回 null
+     * 查询从 originLocation 到 ctxList 每个元素中location之间的距离
+     *
+     * @param originLocation    起点
+     * @param ctxList           每个终点
+     * @param consumer          执行完毕后的回调
      */
-    public Integer driving(String origin, String destination) {
+    public void multiDriving (String originLocation, List<AcceptanceCtx> ctxList, Consumer<?> consumer) {
+
+    }
+
+
+    private Integer driving(String origin, String destination) {
         // 注意：高德要求经纬度为 "lon,lat"，中间逗号不能编码，否则会造成解析失败，这里不对逗号做编码处理。
         final String url = StrUtil.format(DIRECTION_DRIVING, origin, destination, this.properties.getApiKey());
         try {

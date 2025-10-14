@@ -11,6 +11,7 @@ import com.bot.bots.database.entity.*;
 import com.bot.bots.database.enums.*;
 import com.bot.bots.database.service.*;
 import com.bot.bots.helper.KeyboardHelper;
+import com.bot.bots.helper.MapUtil;
 import com.bot.bots.sender.AsyncSender;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -37,13 +38,12 @@ import java.util.Objects;
 @RequiredArgsConstructor
 public class CallbackHandler extends AbstractHandler {
 
+    private final MapUtil mapUtil;
     private final UserService userService;
     private final BotProperties properties;
-    private final ConfigService configService;
     private final ExposeService exposeService;
     private final AddressService addressService;
     private final PublishService publishService;
-    private final RechargeService rechargeService;
     private final AcceptanceCtxService acceptanceCtxService;
 
     @Override
@@ -231,6 +231,10 @@ public class CallbackHandler extends AbstractHandler {
                 return editMarkdown(message, "请输入自定义的范围值（整数类型）");
             } else if (StrUtil.equals(scope, "confirm")) {
                 String address = ctx.getAllAddress();
+                String location = this.mapUtil.location(address);
+
+
+
                 // TODO 使用高德地图查询距离
                 String text = CommonCache.accCtxText(callbackQuery.getFrom().getId());
                 InlineKeyboardMarkup markup = KeyboardHelper.buildLoadKeyboard();
@@ -447,6 +451,9 @@ public class CallbackHandler extends AbstractHandler {
                 acceptanceCtx.setUserId(callbackQuery.getFrom().getId());
                 acceptanceCtx.setUsername(callbackQuery.getFrom().getUserName());
                 acceptanceCtx.setNickname(callbackQuery.getFrom().getFirstName());
+
+                String location = this.mapUtil.location(acceptanceCtx.getAddress());
+                acceptanceCtx.setLocation(location);
 
                 this.acceptanceCtxService.save(acceptanceCtx);
                 return editMarkdown(message, text);

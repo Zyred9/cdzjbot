@@ -57,5 +57,7 @@ public class AcceptanceCtx {
     private Boolean move;
     // 是否跟车
     private Boolean follow;
+    // 经纬度
+    private String location;
 
 }

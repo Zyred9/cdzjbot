@@ -45,6 +45,8 @@ public class TeamCtx {
     private String followCar;
     // 备注
     private String marks;
+    // 经纬度
+    private String location;
 
 
     public static TeamCtx build(Map<String, String> map, User from) {
