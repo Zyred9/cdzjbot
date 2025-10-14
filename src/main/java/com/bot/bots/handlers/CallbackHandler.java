@@ -242,7 +242,7 @@ public class CallbackHandler extends AbstractHandler {
                     this.mapUtil.multiDriving(ctx.getScope(), location, ctxList, results -> {
                         if (CollUtil.isEmpty(results)) {
                             AsyncSender.async(
-                                    markdown(userId, "您提交的查询 [" + address + "] 范围(" + ctx.getScope() + ") 没有查到数据！")
+                                    markdown(userId, "您提交的查询 [" + address + "] 范围(" + ctx.getScope() + ") 附近暂无承兑所在地，放大区间范围试试！")
                             );
                             return;
                         }
@@ -260,7 +260,7 @@ public class CallbackHandler extends AbstractHandler {
                                     .append("`\n");
                             i ++;
                         }
-                        AsyncSender.async(markdown(userId, sb.toString()));
+                        AsyncSender.async(markdown(userId, sb.toString(), KeyboardHelper.buildSearchKeyboard()));
                     });
                 });
 

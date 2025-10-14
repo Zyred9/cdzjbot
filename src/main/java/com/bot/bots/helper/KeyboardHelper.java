@@ -26,6 +26,13 @@ import java.util.*;
  */
 public class KeyboardHelper {
 
+    public static InlineKeyboardMarkup buildSearchKeyboard() {
+        return InlineKeyboardMarkup.builder()
+                .keyboard(List.of(
+                        row(buttonUrl("联系承兑", "https://t.me/CDZJkefu"), cancelButton())
+                )).build();
+    }
+
     public static InlineKeyboardMarkup buildCommitSupplementQueryKeyboard(int query) {
         return InlineKeyboardMarkup.builder()
                 .keyboard(List.of(
