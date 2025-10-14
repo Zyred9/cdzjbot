@@ -13,7 +13,9 @@ import java.math.BigDecimal;
 public interface Constants {
 
     BigDecimal COST = BigDecimal.valueOf(50);
-
+    String TRANSFER_QUERY = """
+            https://apilist.tronscanapi.com/api/filter/trc20/transfers?sort=-timestamp&count=true&limit=20&start=0&filterTokenValue=0&relatedAddress={}&start_timestamp={}
+            """;
 
     String TOKEN_KEY = "BOT_TOKEN";
 
@@ -100,9 +102,7 @@ public interface Constants {
             🟢到账时间：`{}`
             ➖➖➖➖➖➖➖➖
             """;
-    String TRANSFER_QUERY = """
-            https://apilist.tronscanapi.com/api/filter/trc20/transfers?sort=-timestamp&count=true&limit=20&start=0&filterTokenValue=0&relatedAddress={}&start_timestamp={}
-            """;
+
     String CAT_TEAM_TEXT = """
             车队报备（请将下列内容编辑后提交即可）
             
