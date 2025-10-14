@@ -71,7 +71,6 @@ public class MapUtil {
                 Runnable job = drivingJobs.poll();
                 if (Objects.nonNull(job)) {
                     job.run();
-                    log.info("[调度器] 执行了任务 。。。。。。。。。。。。。");
                 };
             } catch (Exception ex) {
                 log.warn("[MapUtil] 驾车调度异常：{}", ex.getMessage());
@@ -111,11 +110,8 @@ public class MapUtil {
         for (AcceptanceCtx item : ctxList) {
             Runnable job = () -> {
                 try {
-                    log.info("[Runnable] 开始执行 ....");
                     if (Objects.nonNull(item) && StrUtil.isNotBlank(item.getLocation())) {
-                        log.info("[Runnable] 开始执行2 ..... ");
                         Integer dist = this.driving(originLocation, item.getLocation());
-                        log.info("[Runnable] 开始执行3 ..... {}", dist);
                         if (Objects.nonNull(dist) && dist <= (scope * 1000)) {
                             item.setDistance(dist);
                             batchAccepted.add(item);
