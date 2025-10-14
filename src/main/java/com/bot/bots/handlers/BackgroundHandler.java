@@ -52,29 +52,27 @@ public class BackgroundHandler extends AbstractHandler {
 
         /*
             客服回复#
-            &内容内容内容内容内容内容内容内容内容内容内容内容内容内容内容内容内容内容内容内容内容
+            &客服回复客服回复客服回复客服回复客服回复客服回复客服回复客服回复客服回复客服回复
             &按钮1#https://t.me/xmkfjqr|按钮2#https://t.me/xmkfjqr$按钮3#https://t.me/xmkfjqr
 
             盘总回复#
-            &内容内容内容内容内容内容内容内容内容内容内容内容内容内容内容内容内容内容内容内容内容
+            &盘总回复盘总回复盘总回复盘总回复盘总回复盘总回复盘总回复盘总回复盘总回复
             &按钮1#https://t.me/xmkfjqr|按钮2#https://t.me/xmkfjqr$按钮3#https://t.me/xmkfjqr
         */
         Config config = this.configService.queryConfig();
 
-        if (StrUtil.equalsAny("设置客服", "盘总回复", commands.get(0))) {
-            boolean custom = StrUtil.equalsAny("设置客服", commands.get(0));
+        if (StrUtil.equalsAny(commands.get(0), "客服回复", "盘总回复")) {
+            boolean custom = StrUtil.equalsAny("客服回复", commands.get(0));
 
-            String content = StrUtil.trim(commands.get(1));
-            List<String> contentAndKeyboard = StrUtil.split(content, "&");
-            String contentText = StrUtil.trim(contentAndKeyboard.get(0));
-            String contentKeyboard = StrUtil.trim(contentAndKeyboard.get(1));
+            List<String> split = StrUtil.split(text, "&");
+            String content = StrUtil.trim(split.get(1));
 
             if (custom) {
-                config.setCustomText(contentText);
-                config.setCustomKeyboard(KeyboardHelper.parseKeyboard(contentKeyboard));
+                config.setCustomText(content);
+                config.setCustomKeyboard(KeyboardHelper.parseKeyboard(split.get(2)));
             } else {
-                config.setSelfText(contentText);
-                config.setSelfKeyboard(KeyboardHelper.parseKeyboard(contentKeyboard));
+                config.setSelfText(content);
+                config.setSelfKeyboard(KeyboardHelper.parseKeyboard(split.get(2)));
             }
             this.configService.updateById(config);
             return reply(message);

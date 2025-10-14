@@ -162,8 +162,6 @@ public class PrivateChatHandler extends AbstractHandler{
             return this.processorCache(message);
         }
 
-        List<String> commands = StrUtil.split(text, "#");
-
         return null;
     }
 
