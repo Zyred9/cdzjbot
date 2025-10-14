@@ -11,7 +11,11 @@ bots:
     exposure-id: -1002787414688
     address: TMPQSc5YsjLBh9CdYcCH3RmqEAfELFuLMe
     api-key: 9e1edc585fbd72fb1ef129845e3ac911
-    web-url: http://45.77.4.60:9929/pc/team?userId=
+    web-url: http://45.77.4.60:${server.port}/pc/team?userId=
+    channels:
+      - -1003109926360
+      - -1003138818633
+      - -1002787414688
 # -------------------部署需要修改---------------------
 
 mybatis-plus:
@@ -31,7 +35,7 @@ spring:
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     username: root
-    password: Qj683k2^11299%nkjb
+    password: QWERT123
     url: jdbc:mysql://127.0.0.1:3306/cdzjbot?useUnicode=true&characterEncoding=utf8&autoReconnect=true&serverTimezone=Asia/Shanghai&useSSL=false&nullCatalogMeansCurrent=true
 logging:
   level:

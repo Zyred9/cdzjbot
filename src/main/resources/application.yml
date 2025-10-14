@@ -1,9 +1,9 @@
 spring:
   profiles:
-    active: dev
+    active: prod
   datasource:
     hikari:
       maximum-pool-size: 3
       minimum-idle: 1
 server:
-  port: 9929
+  port: 9527

@@ -60,4 +60,6 @@ public class AcceptanceCtx {
     // 经纬度
     private String location;
 
+    @TableField(exist = false)
+    private Integer distance;
 }

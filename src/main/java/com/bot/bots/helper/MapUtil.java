@@ -3,8 +3,6 @@ package com.bot.bots.helper;
 
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.StrUtil;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import cn.hutool.json.JSONArray;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
@@ -17,11 +15,18 @@ import okhttp3.Request;
 import okhttp3.Response;
 import org.springframework.stereotype.Component;
 
+import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
 import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
-import java.util.function.Function;
 
 /**
  * 高德地图 Web 服务工具类
@@ -44,16 +49,98 @@ public class MapUtil {
     private final BotProperties properties;
     private final OkHttpClient okHttpClient;
 
+    // 全局限流：统一调度，1秒最多3个请求
+    private final BlockingQueue<Runnable> drivingJobs = new LinkedBlockingQueue<>();
+    private ScheduledExecutorService drivingScheduler;
+    private static final int MAX_QPS = 3;
+
+
+    @PostConstruct
+    private void initDrivingScheduler() {
+        // 固定频率调度，按 1000ms / MAX_QPS 的步长出队执行
+        long intervalMs = Math.max(1, 1000L / MAX_QPS);
+        this.drivingScheduler = Executors.newSingleThreadScheduledExecutor(r -> {
+            Thread t = new Thread(r, "map-driving-qps");
+            t.setDaemon(true);
+            return t;
+        });
+
+
+        this.drivingScheduler.scheduleAtFixedRate(() -> {
+            try {
+                Runnable job = drivingJobs.poll();
+                if (Objects.nonNull(job)) {
+                    job.run();
+                    log.info("[调度器] 执行了任务 。。。。。。。。。。。。。");
+                };
+            } catch (Exception ex) {
+                log.warn("[MapUtil] 驾车调度异常：{}", ex.getMessage());
+            }
+        }, intervalMs, intervalMs, TimeUnit.MILLISECONDS);
+        log.info("[MapUtil] 驾车QPS限流调度启动，间隔 {} ms (≈{} QPS)", intervalMs, MAX_QPS);
+    }
+
+    @PreDestroy
+    private void shutdownDrivingScheduler() {
+        if (this.drivingScheduler != null) {
+            this.drivingScheduler.shutdownNow();
+        }
+    }
 
     /**
-     * 查询从 originLocation 到 ctxList 每个元素中location之间的距离
+     * 查询从 originLocation 到 ctxList 每个元素中 location 之间的距离；全局限流 1 秒最多 3 个请求；
+     * 全部完成后回调 consumer.accept(resultList)。
      *
-     * @param originLocation    起点
-     * @param ctxList           每个终点
-     * @param consumer          执行完毕后的回调
+     * @param originLocation 起点，经纬度 "lon,lat"
+     * @param scope          范围
+     * @param ctxList        终点列表，读取 AcceptanceCtx.getAddress()/getUserId 等自行扩展
+     * @param consumer       完成后的回调，参数为与 ctxList 顺序一致的距离（米，可能为 null）列表
      */
-    public void multiDriving (String originLocation, List<AcceptanceCtx> ctxList, Consumer<?> consumer) {
+    public void multiDriving(int scope, String originLocation, List<AcceptanceCtx> ctxList, Consumer<List<AcceptanceCtx>> consumer) {
+        if (CollUtil.isEmpty(ctxList)) {
+            consumer.accept(Collections.emptyList());
+            return;
+        }
+        // 防御式拷贝，避免调用方并发修改列表导致统计偏差；使用固定总数进行完成判断
+        final List<AcceptanceCtx> targets = List.copyOf(ctxList);
+        final int total = targets.size();
+        // 为本次调用创建独立的批次上下文，确保并发多次调用时互不干扰
+        final List<AcceptanceCtx> batchAccepted = Collections.synchronizedList(new ArrayList<>());
+        final AtomicInteger batchDone = new AtomicInteger(0);
 
+        for (AcceptanceCtx item : ctxList) {
+            Runnable job = () -> {
+                try {
+                    log.info("[Runnable] 开始执行 ....");
+                    if (Objects.nonNull(item) && StrUtil.isNotBlank(item.getLocation())) {
+                        log.info("[Runnable] 开始执行2 ..... ");
+                        Integer dist = this.driving(originLocation, item.getLocation());
+                        log.info("[Runnable] 开始执行3 ..... {}", dist);
+                        if (Objects.nonNull(dist) && dist <= (scope * 1000)) {
+                            item.setDistance(dist);
+                            batchAccepted.add(item);
+                        }
+                    }
+                } catch (Exception ex) {
+                    log.warn("[MapUtil] 单次驾车规划失败：{}", ex.getMessage());
+                } finally {
+                    if (batchDone.incrementAndGet() == total) {
+                        try {
+                            consumer.accept(batchAccepted);
+                        } catch (Exception cbEx) {
+                            log.warn("[MapUtil] 回调异常：{}", cbEx.getMessage());
+                        }
+                    }
+                }
+            };
+
+            try {
+                this.drivingJobs.put(job);
+            } catch (InterruptedException ie) {
+                Thread.currentThread().interrupt();
+                log.warn("[MapUtil] 任务入队被中断，{}", ie.getMessage());
+            }
+        }
     }
 
 
@@ -62,6 +149,7 @@ public class MapUtil {
         final String url = StrUtil.format(DIRECTION_DRIVING, origin, destination, this.properties.getApiKey());
         try {
             JSONObject root = this.doHttpQuery(url);
+            log.info("[驾车路径规划] 入参：{}, 结果：{}", (origin + "-> " + destination), JSONUtil.toJsonStr(root));
             if (Objects.isNull(root)) {
                 return null;
             }

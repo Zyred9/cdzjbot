@@ -17,7 +17,7 @@ bots:
       - -1002756411889
       - -1002756411889
     api-key: 9e1edc585fbd72fb1ef129845e3ac911
-    web-url: http://127.0.01:9929/pc/team?userId=
+    web-url: http://127.0.01:${server.port}/pc/team?userId=
 # -------------------部署需要修改---------------------
 
 

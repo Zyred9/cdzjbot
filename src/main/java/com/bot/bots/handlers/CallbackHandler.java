@@ -12,11 +12,13 @@ import com.bot.bots.database.enums.*;
 import com.bot.bots.database.service.*;
 import com.bot.bots.helper.KeyboardHelper;
 import com.bot.bots.helper.MapUtil;
+import com.bot.bots.helper.ThreadHelper;
 import com.bot.bots.sender.AsyncSender;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.methods.botapimethods.BotApiMethod;
+import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.CallbackQuery;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.message.Message;
@@ -231,11 +233,37 @@ public class CallbackHandler extends AbstractHandler {
                 return editMarkdown(message, "请输入自定义的范围值（整数类型）");
             } else if (StrUtil.equals(scope, "confirm")) {
                 String address = ctx.getAllAddress();
-                String location = this.mapUtil.location(address);
 
+                ThreadHelper.execute(() -> {
+                    Long userId = callbackQuery.getFrom().getId();
 
+                    String location = this.mapUtil.location(address);
+                    List<AcceptanceCtx> ctxList = this.acceptanceCtxService.list();
+                    this.mapUtil.multiDriving(ctx.getScope(), location, ctxList, results -> {
+                        if (CollUtil.isEmpty(results)) {
+                            AsyncSender.async(
+                                    markdown(userId, "您提交的查询 [" + address + "] 范围(" + ctx.getScope() + ") 没有查到数据！")
+                            );
+                            return;
+                        }
+                        StringBuilder sb = new StringBuilder("*您提交的查询查询结果*").append("\n\n")
+                                .append("*您的输入：*").append(address).append("  ").append(ctx.getScope()).append("\n\n")
+                                .append("*查询结果如下：*").append("\n");
 
-                // TODO 使用高德地图查询距离
+                        int i = 1;
+                        for (AcceptanceCtx result : results) {
+                            Integer distance = result.getDistance() / 1000;
+                            sb.append(i).append(" ： ")
+                                    .append(distance)
+                                    .append("公里").append("   `")
+                                    .append(result.getAddress())
+                                    .append("`\n");
+                            i ++;
+                        }
+                        AsyncSender.async(markdown(userId, sb.toString()));
+                    });
+                });
+
                 String text = CommonCache.accCtxText(callbackQuery.getFrom().getId());
                 InlineKeyboardMarkup markup = KeyboardHelper.buildLoadKeyboard();
                 return editMarkdown(message, text, markup);
