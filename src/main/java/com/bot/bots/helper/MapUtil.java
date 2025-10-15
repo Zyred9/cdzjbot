@@ -145,7 +145,6 @@ public class MapUtil {
         final String url = StrUtil.format(DIRECTION_DRIVING, origin, destination, this.properties.getApiKey());
         try {
             JSONObject root = this.doHttpQuery(url);
-            log.info("[驾车路径规划] 入参：{}, 结果：{}", (origin + "-> " + destination), JSONUtil.toJsonStr(root));
             if (Objects.isNull(root)) {
                 return null;
             }
@@ -164,7 +163,6 @@ public class MapUtil {
             }
             JSONObject first = (JSONObject) paths.get(0);
             String distance = first.getStr("distance");
-            log.info("[驾车路径规划] {} -> {}，距离：{} 米", origin, destination, distance);
             return Integer.parseInt(distance);
         } catch (Exception ex) {
             log.error("[驾车路径规划] 失败：{}", ex.getMessage());
@@ -201,9 +199,7 @@ public class MapUtil {
                 return null;
             }
             JSONObject first = (JSONObject)geocodes.get(0);
-            String location = first.getStr("location");
-            log.info("[查询经纬度] 地址：{}，经纬度：{}", address, location);
-            return location;
+            return first.getStr("location");
         } catch (Exception ex) {
             log.error("[查询经纬度] 失败：{}", ex.getMessage());
             return null;
