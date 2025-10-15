@@ -6,6 +6,7 @@ import com.bot.bots.database.entity.Config;
 import com.bot.bots.database.entity.User;
 import com.bot.bots.database.service.ConfigService;
 import com.bot.bots.database.service.UserService;
+import com.bot.bots.helper.DecimalHelper;
 import com.bot.bots.helper.KeyboardHelper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -15,7 +16,9 @@ import org.telegram.telegrambots.meta.api.objects.message.Message;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * <p>
@@ -95,17 +98,18 @@ public class BackgroundHandler extends AbstractHandler {
             String ids = commands.get(1);
             String[] userIds = ids.split("[,，]");
 
-            List<Long> userIdList = new ArrayList<>(userIds.length);
+            Set<Long> userIdSet = new HashSet<>();
             for (String userId : userIds) {
-                userIdList.add(Long.parseLong(userId));
+                userIdSet.add(Long.parseLong(userId));
             }
 
             List<Long> editable = config.getEditable();
             if (add) {
-                editable.addAll(userIdList);
+                editable.addAll(userIdSet);
             } else {
-                editable.removeAll(userIdList);
+                editable.removeAll(userIdSet);
             }
+            this.configService.updateById(config);
             return reply(message);
         }
 
@@ -117,6 +121,9 @@ public class BackgroundHandler extends AbstractHandler {
 
             User user = this.userService.getById(userId);
             user.setBalance(user.getBalance().add(amount));
+            if (DecimalHelper.lessThan(user.getBalance(), BigDecimal.ZERO)) {
+                user.setBalance(BigDecimal.ZERO);
+            }
             this.userService.updateById(user);
             return reply(message);
         }
