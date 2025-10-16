@@ -1,6 +1,6 @@
 package com.bot.bots.web;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.bot.bots.database.entity.Config;
 import com.bot.bots.database.entity.TeamCtx;
@@ -79,34 +79,13 @@ public class TeamCtxController {
     }
 
 
-    /**
-     * <pre>
-     * 查询参数:
-     * - pageNo, pageSize
-     * - userId, username, nickname, address
-     * 示例:
-     * GET /api/team/list?pageNo=1&pageSize=10&username=test
-     * </pre>
-     */
     @GetMapping("/api/team/list")
     @ResponseBody
     public Page<TeamCtx> list(
             @RequestParam(defaultValue = "1") long pageNo,
-            @RequestParam(defaultValue = "10") long pageSize,
-            @RequestParam(required = false) Long userId,
-            @RequestParam(required = false) String username,
-            @RequestParam(required = false) String nickname,
-            @RequestParam(required = false) String address
-    ) {
+            @RequestParam(defaultValue = "10") long pageSize) {
         pageNo = Math.max(1, pageNo);
         pageSize = Math.max(1, Math.min(100, pageSize));
-
-        LambdaQueryWrapper<TeamCtx> qw = new LambdaQueryWrapper<>();
-        if (userId != null) qw.eq(TeamCtx::getUserId, userId);
-        if (username != null && !username.isBlank()) qw.like(TeamCtx::getUsername, username);
-        if (nickname != null && !nickname.isBlank()) qw.like(TeamCtx::getNickname, nickname);
-        if (address != null && !address.isBlank()) qw.like(TeamCtx::getAddress, address);
-
-        return teamCtxService.page(Page.of(pageNo, pageSize), qw);
+        return teamCtxService.page(Page.of(pageNo, pageSize), Wrappers.lambdaQuery());
     }
 }

@@ -1,6 +1,6 @@
 package com.bot.bots.web;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.bot.bots.database.entity.Config;
 import com.bot.bots.database.entity.PartnerCtx;
@@ -89,21 +89,10 @@ public class PartnerCtxController {
     @ResponseBody
     public Page<PartnerCtx> list(
             @RequestParam(defaultValue = "1") long pageNo,
-            @RequestParam(defaultValue = "10") long pageSize,
-            @RequestParam(required = false) Long userId,
-            @RequestParam(required = false) String username,
-            @RequestParam(required = false) String nickname,
-            @RequestParam(required = false) String address
-    ) {
+            @RequestParam(defaultValue = "10") long pageSize) {
         pageNo = Math.max(1, pageNo);
         pageSize = Math.max(1, Math.min(100, pageSize));
 
-        LambdaQueryWrapper<PartnerCtx> qw = new LambdaQueryWrapper<>();
-        if (userId != null) qw.eq(PartnerCtx::getUserId, userId);
-        if (username != null && !username.isBlank()) qw.like(PartnerCtx::getUsername, username);
-        if (nickname != null && !nickname.isBlank()) qw.like(PartnerCtx::getNickname, nickname);
-        if (address != null && !address.isBlank()) qw.like(PartnerCtx::getAddress, address);
-
-        return partnerCtxService.page(Page.of(pageNo, pageSize), qw);
+        return partnerCtxService.page(Page.of(pageNo, pageSize), Wrappers.lambdaQuery());
     }
 }

@@ -64,7 +64,7 @@
     function toYesNo(v){ return v === true ? '是' : (v === false ? '否' : ''); }
     function formatEnum(e){
         if(!e) return '';
-        if (typeof e === 'object') return e.desc || e.name || JSON.stringify(e);
+        if (typeof e === 'object') return e;
         return e;
     }
     function formatArray(arr){
@@ -86,39 +86,46 @@
     }
 
     async function loadData(pn){
-        const resp = await fetch('/api/acceptance/list?' + buildParams(pn));
-        const data = await resp.json();
-        pageNo = data.current || 1;
-        pageSize = data.size || 10;
-        total = data.total || 0;
-        pages = data.pages || 0;
+        try {
+            const resp = await fetch('/api/acceptance/list?' + buildParams(pn));
+            if (!resp.ok) { console.warn('接口请求失败', resp.status); return; }
+            const data = await resp.json();
 
-        const list = data.records || [];
-        const tbody = document.getElementById('tbody');
-        tbody.innerHTML = list.map(it => `
-            <tr>
-                <td>${it.id ?? ''}</td>
-                <td>${it.userId ?? ''}</td>
-                <td>${it.username ?? ''}</td>
-                <td>${it.nickname ?? ''}</td>
-                <td>${it.address ?? ''}</td>
-                <td>${formatArray(it.categories)}</td>
-                <td>${it.intervalInput ?? ''}</td>
-                <td>${it.rate ?? ''}</td>
-                <td>${formatEnum(it.material)}</td>
-                <td>${formatArray(it.forbids)}</td>
-                <td>${toYesNo(it.airborne)}</td>
-                <td>${toYesNo(it.station)}</td>
-                <td>${toYesNo(it.move)}</td>
-                <td>${toYesNo(it.follow)}</td>
-                <td>
-                    <button class="btn" onclick="editRow(${it.id})">编辑</button>
-                    <button class="btn" style="background:#ff4d4f" onclick="deleteRow(${it.id})">删除</button>
-                </td>
-            </tr>
-        `).join('');
+            // 兼容不同返回结构：Page 或 直接数组
+            const list = Array.isArray(data.records) ? data.records : (Array.isArray(data) ? data : []);
+            pageNo = (data.current ?? pageNo) || 1;
+            pageSize = (data.size ?? pageSize) || 10;
+            total = data.total ?? list.length ?? 0;
+            pages = data.pages ?? (pageSize > 0 ? Math.ceil(total / pageSize) : 0);
 
-        document.getElementById('pageInfo').innerText = `第 ${pageNo} / ${pages} 页，共 ${total} 条`;
+            const tbody = document.getElementById('tbody');
+            tbody.innerHTML = list.map(it => `
+                <tr>
+                    <td>${it.id ?? ''}</td>
+                    <td>${it.userId ?? ''}</td>
+                    <td>${it.username ?? ''}</td>
+                    <td>${it.nickname ?? ''}</td>
+                    <td>${it.address ?? ''}</td>
+                    <td>${it.categories}</td>
+                    <td>${it.intervalInput ?? ''}</td>
+                    <td>${it.rate ?? ''}</td>
+                    <td>${it.materials}</td>
+                    <td>${it.forbids}</td>
+                    <td>${toYesNo(it.airborne)}</td>
+                    <td>${toYesNo(it.station)}</td>
+                    <td>${toYesNo(it.move)}</td>
+                    <td>${toYesNo(it.follow)}</td>
+                    <td>
+                        <button class="btn" onclick="editRow(${it.id})">编辑</button>
+                        <button class="btn" style="background:#ff4d4f" onclick="deleteRow(${it.id})">删除</button>
+                    </td>
+                </tr>
+            `).join('');
+
+            document.getElementById('pageInfo').innerText = `第 ${pageNo} / ${pages} 页，共 ${total} 条`;
+        } catch (e) {
+            console.error('加载数据异常', e);
+        }
     }
 
     function prev(){ if(pageNo > 1) loadData(pageNo - 1); }
