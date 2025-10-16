@@ -1,5 +1,6 @@
 package com.bot.bots.helper;
 
+import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -29,7 +30,7 @@ public class KeyboardHelper {
     public static InlineKeyboardMarkup buildSearchKeyboard() {
         return InlineKeyboardMarkup.builder()
                 .keyboard(List.of(
-                        row(buttonUrl("联系承兑", "https://t.me/CDZJkefu"), cancelButton())
+                        row(buttonUrl("\uD83D\uDC81\uD83C\uDFFB\u200d♀️联系承兑", "https://t.me/CDZJkefu"))
                 )).build();
     }
 
@@ -40,9 +41,9 @@ public class KeyboardHelper {
                 )).build();
     }
 
-    public static InlineKeyboardMarkup buildSupplementCommitedKeyboard(int query) {
+    public static InlineKeyboardMarkup buildSupplementCommitedKeyboard(String name, int query) {
         return InlineKeyboardMarkup.builder()
-                .keyboardRow(row(buttonText("✅报备已提交", "privacy#supplement#commited#"+query)))
+                .keyboardRow(row(buttonText(name, "privacy#supplement#commited#"+query)))
                 .build();
     }
 
@@ -57,11 +58,21 @@ public class KeyboardHelper {
         return InlineKeyboardMarkup.builder()
                 .keyboard(List.of(
                         row(
-                                buttonText("✍️点击输入", "privacy#supplement#input#"+query)
+                                buttonText("✍️补充要求", "privacy#supplement#input#"+query)
                         ),
-                        row(buttonText("⤵️下一步(跳过)", "privacy#supplement#confirm#"+query), cancelButton())
+                        row(buttonText("⤵️跳过补充", "privacy#supplement#confirm#"+query), cancelButton())
                 )).build();
     }
+
+//    public static InlineKeyboardMarkup buildSupplementLocationKeyboard(int query) {
+//        return InlineKeyboardMarkup.builder()
+//                .keyboard(List.of(
+//                        row(
+//                                buttonText("✍️补充要求", "privacy#supplement#input#"+query)
+//                        ),
+//                        row(buttonText("✅立即查询", "privacy#supplement#do_query#"+query), cancelButton())
+//                )).build();
+//    }
 
 
     public static InlineKeyboardMarkup buildPacketKeyboard(Boolean packet, int query) {
@@ -75,13 +86,12 @@ public class KeyboardHelper {
                 )).build();
     }
 
-    public static InlineKeyboardMarkup buildModelKeyboard(String model, int query) {
-        boolean face = StrUtil.equals(model, "1");
+    public static InlineKeyboardMarkup buildModelKeyboard(List<String> models, int query) {
         return InlineKeyboardMarkup.builder()
                 .keyboard(List.of(
                         row(
-                                buttonText(StrUtil.isNotBlank(model) &&  face ? "✅" + "专群" : "专群", "privacy#model#1#"+query),
-                                buttonText(StrUtil.isNotBlank(model) && !face ? "✅" + "面交" : "面交", "privacy#model#2#"+query)
+                                buttonText(CollUtil.isNotEmpty(models) && models.contains("专群") ? "✅" + "专群" : "专群", "privacy#model#1#"+query),
+                                buttonText(CollUtil.isNotEmpty(models) && models.contains("面交") ? "✅" + "面交" : "面交", "privacy#model#2#"+query)
                         ),
                         row(buttonText("⤵️下一步", "privacy#model#confirm#"+query), cancelButton())
                 )).build();
@@ -106,15 +116,15 @@ public class KeyboardHelper {
                 row.add(cancelButton());
             } else {
 
-                String name = val;
+                String name = val + "公里";
                 if (StrUtil.equals(val, "confirm")) {
                     name = "⤵️查询";
                 }
                 if (StrUtil.equals(val, "custom")) {
-                    name = "✍️自定义";
+                    name = "✍️自定义公里数";
                 }
                 if (Objects.equals(chooseValue, val)) {
-                    name = "✅" + val;
+                    name = "✅" + val + "公里";
                 }
 
                 row.add(
@@ -220,7 +230,7 @@ public class KeyboardHelper {
     public static InlineKeyboardMarkup buildRateIncrementKeyboard() {
         return InlineKeyboardMarkup.builder()
                 .keyboard(List.of(
-                        row(buttonText("+0.05", "privacy#input#rate#increment"), buttonText("-0.05", "privacy#input#rate#subtract")),
+                        row(buttonText("汇率+0.05", "privacy#input#rate#increment"), buttonText("汇率-0.05", "privacy#input#rate#subtract")),
                         row(buttonText("⤵️下一步", "privacy#input#rate#confirm"), cancelButton())
                 )).build();
     }
@@ -228,7 +238,7 @@ public class KeyboardHelper {
     public static InlineKeyboardMarkup buildInputIntervalKeyboard() {
         return InlineKeyboardMarkup.builder()
                 .keyboard(List.of(
-                        row(buttonText("请输入你的接单额区间", "privacy#input#interval#input")),
+                        row(buttonText("请输入你的接单额区间（例 1万至100万）", "privacy#input#interval#input")),
                         row(cancelButton())
                 )).build();
     }
@@ -258,7 +268,7 @@ public class KeyboardHelper {
         }
 
         InlineKeyboardRow last = new InlineKeyboardRow();
-        last.add(buttonText("⤵️下一步", "privacy#input#interval#show"));  // 输入金额区间
+        last.add(buttonText("⤵️下一步", "privacy#input#interval#show#" + query));  // 输入金额区间
         last.add(cancelButton());
         rows.add(last);
         return InlineKeyboardMarkup.builder().keyboard(rows).build();

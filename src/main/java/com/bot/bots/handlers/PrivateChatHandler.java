@@ -126,7 +126,7 @@ public class PrivateChatHandler extends AbstractHandler{
         if (StrUtil.equals(text, "承兑报备")) {
             List<Address> address = this.addressService.selectProvince();
             InlineKeyboardMarkup markup = KeyboardHelper.buildProvinceKeyboard(address, AddressParam.EXCHANGE.getCode());
-            return ok(message, "（请详细到区县）例：浙江省杭州市西湖区", markup);
+            return ok(message, Constants.ACCEPTANCE_FILING_TEXT, markup);
         }
 
         if (StrUtil.equals(text, "车队报备")) {
@@ -138,25 +138,25 @@ public class PrivateChatHandler extends AbstractHandler{
         if (StrUtil.equals(text, "承兑所在地")) {
             List<Address> address = this.addressService.selectProvince();
             InlineKeyboardMarkup markup = KeyboardHelper.buildProvinceKeyboard(address, AddressParam.QUERY_EXCHANGE.getCode());
-            return markdownReply(message, "（请详细到区县）例：浙江省杭州市西湖区", markup);
+            return markdownReply(message, Constants.PROVINCE_LOCATION_TEXT, markup);
         }
 
         if (StrUtil.equals(text, "车队所在地")) {
             List<Address> address = this.addressService.selectProvince();
             InlineKeyboardMarkup markup = KeyboardHelper.buildProvinceKeyboard(address, AddressParam.QUERY_TEAM.getCode());
-            return markdownReply(message, "（请详细到区县）例：浙江省杭州市西湖区", markup);
+            return markdownReply(message, Constants.CAT_TEAM_ADDRESS_TEXT, markup);
         }
 
         if (StrUtil.equals(text, "卸货合作商")) {
             List<Address> address = this.addressService.selectProvince();
             InlineKeyboardMarkup markup = KeyboardHelper.buildProvinceKeyboard(address, AddressParam.UNLOADING_PARTNER.getCode());
-            return markdownReply(message, "（请详细到区县）例：浙江省杭州市西湖区", markup);
+            return markdownReply(message, Constants.UNLOADING_PARTNER_TEXT, markup);
         }
 
         if (StrUtil.equals(text, "卸货所在地")) {
             List<Address> address = this.addressService.selectProvince();
             InlineKeyboardMarkup markup = KeyboardHelper.buildProvinceKeyboard(address, AddressParam.UNLOADING_LOCATION.getCode());
-            return markdownReply(message, "（请详细到区县）例：浙江省杭州市西湖区", markup);
+            return markdownReply(message, Constants.UNLOADING_LOCATION_TEXT, markup);
         }
 
         // 用户有缓存
@@ -252,7 +252,7 @@ public class PrivateChatHandler extends AbstractHandler{
             tc.setLocation(location);
 
             this.teamCtxService.save(tc);
-            return markdownReply(message, "报备成功！");
+            return markdownReply(message, Constants.CAR_TEAM_REPORT_SUCCESS_TEXT);
         }
 
         // 承兑所在地查询自定义输入范围

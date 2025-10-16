@@ -68,7 +68,7 @@ public class AcceptanceContext {
 
     ////// 卸货合作商/卸货所在地  //////////
     // 模式
-    private String model;
+    private List<String> models;
     // 是否要求钱包在现场
     private Boolean packet;
     // 补充要求
@@ -150,9 +150,9 @@ public class AcceptanceContext {
         }
 
         if (CollUtil.isNotEmpty(ctx.getCategories())) {
-            sb.append("所选分类：");
+            sb.append("当前选择物品：");
             List<String> list = ctx.getCategories().stream().map(CategoryEnum::getDesc).toList();
-            sb.append(StrUtil.join(",", list)).append("\n");
+            sb.append(StrUtil.join(",", list)).append("（多选）").append("\n");
         }
 
         if (Boolean.TRUE.equals(ctx.getWaitInputInterval()) && Boolean.FALSE.equals(ctx.getDoneInputInterval())) {
@@ -164,22 +164,22 @@ public class AcceptanceContext {
         }
 
         if (Objects.nonNull(ctx.getRate())) {
-            sb.append("汇率：").append(DecimalHelper.decimalParse(ctx.getRate())).append("\n");
+            sb.append("汇率：").append(DecimalHelper.decimalParse(ctx.getRate())).append("（汇率越低越好接单）").append("\n");
         }
 
         if (Objects.nonNull(ctx.getMaterial())) {
-            sb.append("料性：").append(ctx.getMaterial().getDesc()).append("\n");
+            sb.append("料性：").append(ctx.getMaterial().getDesc()).append("（可多选）").append("\n");
         }
 
         if (CollUtil.isNotEmpty(ctx.getForbids())) {
             sb.append("禁止：");
             List<String> list = ctx.getForbids().stream().map(ForbidTypeEnum::getDesc).toList();
-            sb.append(StrUtil.join(",", list)).append("\n");
+            sb.append(StrUtil.join(",", list)).append("（可多选）").append("\n");
         }
 
         if (Objects.isNull(ctx.getAirborne())) {
             if (ctx.isShowAirborne()) {
-                sb.append("是否空降：偏远地区承兑少，包机票）超推荐！").append("\n");
+                sb.append("是否空降：（全国飞，一般常驻机场附近，机票全包，落地再飞，步跑空）").append("\n");
             }
         } else {
             sb.append("是否空降：").append(ctx.getAirborne() ? "是" : "否").append("\n");
@@ -187,7 +187,7 @@ public class AcceptanceContext {
 
         if (Objects.isNull(ctx.getStation())) {
             if (ctx.isShowStation()) {
-                sb.append("是否驻点：（驻点承兑一般不移动，固定地址，车队送到手里）").append("\n");
+                sb.append("是否驻点：（固定地点接单，送到指定位置）").append("\n");
             }
         } else {
             sb.append("是否驻点：").append(ctx.getStation() ? "是" : "否").append("\n");
@@ -195,7 +195,7 @@ public class AcceptanceContext {
 
         if (Objects.isNull(ctx.getMove())) {
             if (ctx.isShowMove()) {
-                sb.append("是否移动：（车队出车马费，可以移动一段距离，比空降近一些）").append("\n");
+                sb.append("是否移动：（可移动接单，一般是自身接单范围几百公里范围内）").append("\n");
             }
         } else {
             sb.append("是否移动：").append(ctx.getMove() ? "是" : "否").append("\n");
@@ -203,7 +203,7 @@ public class AcceptanceContext {
 
         if (Objects.isNull(ctx.getFollow())) {
             if (ctx.isShowFollow()) {
-                sb.append("是否跟车：（跟车单独规则，有保底一般当天跑空补贴300U）").append("\n");
+                sb.append("是否跟车：（跟着车队走，包车票）").append("\n");
             }
         } else {
             sb.append("是否跟车：").append(ctx.getFollow() ? "是" : "否").append("\n");
@@ -211,16 +211,17 @@ public class AcceptanceContext {
 
         if (Objects.isNull(ctx.getScope())) {
             if (ctx.isShowScope()) {
-                sb.append("范围：请选择范围或自定义").append("\n");
+                sb.append("范围：请选择承兑所在范围或自定义公里数").append("\n");
             }
         } else {
-            sb.append("范围：").append(ctx.getScope()).append("\n");
+            sb.append("范围：").append(ctx.getScope()).append("公里").append("\n");
         }
 
         ////// 卸货合作商/卸货所在地  //////////
-        if (StrUtil.isNotBlank(ctx.getModel())) {
-            sb.append("模式：").append(ctx.getModel()).append("\n");
+        if (CollUtil.isNotEmpty(ctx.getModels())) {
+            sb.append("选择你交易的方式：").append(StrUtil.join(",", ctx.getModels())).append("（可多选）").append("\n");
         }
+
         if (Objects.nonNull(ctx.getPacket())) {
             sb.append("是否要求钱包在现场：").append(ctx.getPacket() ? "是" : "否").append("\n");
         }

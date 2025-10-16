@@ -20,12 +20,12 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 @AllArgsConstructor
 public enum ForbidTypeEnum {
 
-    WOMAN(0, "privacy#forbid#0", "女性"),
-    FISH(1, "privacy#forbid#1", "鱼送"),
-    BRIDGE(2, "privacy#forbid#2", "桥送"),
-    CAR(3, "privacy#forbid#3", "车头人头送"),
-    Minors(4, "privacy#forbid#4", "未成年"),
-    WRINKLY(5, "privacy#forbid#5", "45岁以上中年人"),
+    WOMAN(0, "privacy#forbid#0", "禁女性"),
+    FISH(1, "privacy#forbid#1", "禁鱼送"),
+    BRIDGE(2, "privacy#forbid#2", "禁桥送"),
+    CAR(3, "privacy#forbid#3", "禁车头人头送"),
+    Minors(4, "privacy#forbid#4", "禁未成年"),
+    WRINKLY(5, "privacy#forbid#5", "禁45岁以上中年人"),
     ;
 
     @EnumValue
