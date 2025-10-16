@@ -414,7 +414,7 @@ public class CallbackHandler extends AbstractHandler {
 
                 if (StrUtil.equals(value, "input")) {
                     CommonCache.put(callbackQuery.getFrom().getId(), TempEnum.INPUT_INTERVAL);
-                    return editMarkdown(message, "✍️请输入你的范围");
+                    return editMarkdown(message, "✍️请输入你的接单额区间（例1万至100万）");
                 }
             }
 
@@ -432,7 +432,7 @@ public class CallbackHandler extends AbstractHandler {
                 }
 
                 if (StrUtil.equals(value, "confirm")) {
-                    markup = KeyboardHelper.buildMaterialRemarksKeyboard(ctx.getMaterial());
+                    markup = KeyboardHelper.buildMaterialRemarksKeyboard(ctx.getMaterials());
                 }
 
                 String text = CommonCache.accCtxText(callbackQuery.getFrom().getId());
@@ -446,14 +446,20 @@ public class CallbackHandler extends AbstractHandler {
             AcceptanceContext ctx = CommonCache.getAccCtx(callbackQuery.getFrom().getId());
             InlineKeyboardMarkup markup;
             if (StrUtil.equals(val, "confirm")) {
-                if (Objects.isNull(ctx.getMaterial())) {
-                    return answerAlert(callbackQuery, "❌请选择一个料性！");
+                if (CollUtil.isEmpty(ctx.getMaterials())) {
+                    return answerAlert(callbackQuery, "❌请选择一个或多个料性！");
                 }
                 markup = KeyboardHelper.buildForbidKeyboard(ctx.getForbids());
             } else {
                 MaterialEnum materialEnum = MaterialEnum.ofCode(val);
-                ctx.setMaterial(materialEnum);
-                markup = KeyboardHelper.buildMaterialRemarksKeyboard(materialEnum);
+                if (Objects.isNull(ctx.getMaterials())) {
+                    List<MaterialEnum> materialEnums = new ArrayList<>(4);
+                    materialEnums.add(materialEnum);
+                    ctx.setMaterials(materialEnums);
+                } else {
+                    ctx.getMaterials().add(materialEnum);
+                }
+                markup = KeyboardHelper.buildMaterialRemarksKeyboard(ctx.getMaterials());
             }
             String text = CommonCache.accCtxText(callbackQuery.getFrom().getId());
             return editMarkdown(message, text, markup);

@@ -62,42 +62,42 @@ public class CommonCache {
     }
 
 
-    public static String toJson () {
-        return JSONUtil.toJsonStr(ACCEPTANCE_CONTEXT);
-    }
-    @SuppressWarnings("all")
-    public static void writeJson(String json) {
-        if (StrUtil.isBlank(json)) {
-            return;
-        }
-        if (!JSONUtil.isTypeJSONObject(json)) {
-            return;
-        }
-        JSONUtil.parseObj(json).forEach((k, v) -> {
-            try {
-                final Long userId = Long.parseLong(k);
-                final var obj = JSONUtil.parseObj(v);
-                // 宽松模式反序列化，避免枚举在 Map->Bean 链路报错
-                final AcceptanceContext ctx = JSONUtil.toBean(obj, AcceptanceContext.class, true);
-                // 手动兜底解析 material，兼容 name 与 code
-                if (obj.containsKey("material")) {
-                    final Object materialVal = obj.get("material");
-                    if (materialVal != null) {
-                        com.bot.bots.database.enums.MaterialEnum parsed = null;
-                        final String mv = String.valueOf(materialVal);
-                        parsed = com.bot.bots.database.enums.MaterialEnum.ofName(mv);
-                        if (parsed == null) {
-                            parsed = com.bot.bots.database.enums.MaterialEnum.ofCode(mv);
-                        }
-                        if (parsed != null) {
-                            ctx.setMaterial(parsed);
-                        }
-                    }
-                }
-                ACCEPTANCE_CONTEXT.put(userId, ctx);
-            } catch (NumberFormatException ignore) {
-                // 忽略无法转换为 Long 的 key
-            }
-        });
-    }
+//    public static String toJson () {
+//        return JSONUtil.toJsonStr(ACCEPTANCE_CONTEXT);
+//    }
+//    @SuppressWarnings("all")
+//    public static void writeJson(String json) {
+//        if (StrUtil.isBlank(json)) {
+//            return;
+//        }
+//        if (!JSONUtil.isTypeJSONObject(json)) {
+//            return;
+//        }
+//        JSONUtil.parseObj(json).forEach((k, v) -> {
+//            try {
+//                final Long userId = Long.parseLong(k);
+//                final var obj = JSONUtil.parseObj(v);
+//                // 宽松模式反序列化，避免枚举在 Map->Bean 链路报错
+//                final AcceptanceContext ctx = JSONUtil.toBean(obj, AcceptanceContext.class, true);
+//                // 手动兜底解析 material，兼容 name 与 code
+//                if (obj.containsKey("material")) {
+//                    final Object materialVal = obj.get("material");
+//                    if (materialVal != null) {
+//                        com.bot.bots.database.enums.MaterialEnum parsed = null;
+//                        final String mv = String.valueOf(materialVal);
+//                        parsed = com.bot.bots.database.enums.MaterialEnum.ofName(mv);
+//                        if (parsed == null) {
+//                            parsed = com.bot.bots.database.enums.MaterialEnum.ofCode(mv);
+//                        }
+//                        if (parsed != null) {
+//                            ctx.setMaterial(parsed);
+//                        }
+//                    }
+//                }
+//                ACCEPTANCE_CONTEXT.put(userId, ctx);
+//            } catch (NumberFormatException ignore) {
+//                // 忽略无法转换为 Long 的 key
+//            }
+//        });
+//    }
 }

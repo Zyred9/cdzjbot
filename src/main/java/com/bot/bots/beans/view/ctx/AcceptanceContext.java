@@ -45,7 +45,7 @@ public class AcceptanceContext {
     // 汇率值
     private BigDecimal rate;
     // 料性
-    private MaterialEnum material;
+    private List<MaterialEnum> materials;
     // 多选禁止
     private List<ForbidTypeEnum> forbids;
     // 是否空降
@@ -82,7 +82,7 @@ public class AcceptanceContext {
                 .setCategories(this.categories)
                 .setIntervalInput(this.intervalInput)
                 .setRate(this.rate)
-                .setMaterial(this.material)
+                .setMaterials(this.materials)
                 .setForbids(this.forbids)
                 .setAirborne(this.airborne)
                 .setStation(this.station)
@@ -167,8 +167,10 @@ public class AcceptanceContext {
             sb.append("汇率：").append(DecimalHelper.decimalParse(ctx.getRate())).append("（汇率越低越好接单）").append("\n");
         }
 
-        if (Objects.nonNull(ctx.getMaterial())) {
-            sb.append("料性：").append(ctx.getMaterial().getDesc()).append("（可多选）").append("\n");
+        if (CollUtil.isNotEmpty(ctx.getMaterials())) {
+            List<String> materialDescList = ctx.getMaterials().stream().map(MaterialEnum::getDesc).toList();
+            String desc = StrUtil.join(",", materialDescList);
+            sb.append("料性：").append(desc).append("（可多选）").append("\n");
         }
 
         if (CollUtil.isNotEmpty(ctx.getForbids())) {

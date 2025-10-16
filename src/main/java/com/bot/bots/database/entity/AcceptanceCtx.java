@@ -45,7 +45,7 @@ public class AcceptanceCtx {
     private BigDecimal rate;
     // 料性备注
     @TableField(typeHandler = JacksonTypeHandler.class)
-    private MaterialEnum material;
+    private List<MaterialEnum> materials;
     // 禁止类型
     @TableField(typeHandler = JacksonTypeHandler.class)
     private List<ForbidTypeEnum> forbids;

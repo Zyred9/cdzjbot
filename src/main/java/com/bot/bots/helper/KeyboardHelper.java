@@ -202,11 +202,14 @@ public class KeyboardHelper {
                 .keyboard(rows).build();
     }
 
-    public static InlineKeyboardMarkup buildMaterialRemarksKeyboard(MaterialEnum choose) {
+    public static InlineKeyboardMarkup buildMaterialRemarksKeyboard(List<MaterialEnum> chooses) {
+        chooses = chooses == null ? Collections.emptyList() : chooses;
 
+        Set<MaterialEnum> materialSet = new HashSet<>(chooses);
         InlineKeyboardRow row = new InlineKeyboardRow();
         for (MaterialEnum value : MaterialEnum.values()) {
-            String name = choose == value ? "✅" + value.getDesc() : value.getDesc();
+            boolean contains = materialSet.contains(value);
+            String name = contains ? "✅" + value.getDesc() : value.getDesc();
             row.add(buttonText(name, value.getCallback()));
         }
 
