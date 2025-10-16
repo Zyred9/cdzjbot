@@ -76,7 +76,10 @@ public class MapUtil {
                 log.warn("[MapUtil] 驾车调度异常：{}", ex.getMessage());
             }
         }, intervalMs, intervalMs, TimeUnit.MILLISECONDS);
-        log.info("[MapUtil] 驾车QPS限流调度启动，间隔 {} ms (≈{} QPS)", intervalMs, MAX_QPS);
+
+        if (this.properties.isLogs()) {
+            log.info("[MapUtil] 驾车QPS限流调度启动，间隔 {} ms (≈{} QPS)", intervalMs, MAX_QPS);
+        }
     }
 
     @PreDestroy

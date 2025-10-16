@@ -64,7 +64,10 @@ public class CallbackHandler extends AbstractHandler {
         CallbackQuery callbackQuery = update.getCallbackQuery();
         String text = callbackQuery.getData();
 
-        log.info("[回调事件] {}", text);
+        if (this.properties.isLogs()) {
+            log.info("[回调事件] {}", text);
+        }
+
         Message message = (Message) callbackQuery.getMessage();
 
         if (StrUtil.equals(text, "delete") ){
