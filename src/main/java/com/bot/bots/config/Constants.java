@@ -16,6 +16,9 @@ public interface Constants {
     String TRANSFER_QUERY = """
             https://apilist.tronscanapi.com/api/filter/trc20/transfers?sort=-timestamp&count=true&limit=20&start=0&filterTokenValue=0&relatedAddress={}&start_timestamp={}
             """;
+    String OKX_BOOTS = """
+            https://www.okx.com/v3/c2c/tradingOrders/books?quoteCurrency=cny&baseCurrency=usdt&side={}&limit=15&sort=price&order=desc
+            """;
 
     String TOKEN_KEY = "BOT_TOKEN";
 
@@ -162,6 +165,10 @@ public interface Constants {
             本版块为方便承兑卸货所建设，承兑可在这里查询卸货商家位置，然后到就近的位置进行现金买U业务
             ————————————————-
             请选择您所在的地区，机器人为自动为您匹配最近的卸货商家！
+            """;
+    String CHECK_EXCHANGE_RATE_TEXT = """
+            输入 `L`  查询 欧意商家所有实时汇率
+            输入 `Z0` 查询 欧意商家支付宝汇率
             """;
 }
 

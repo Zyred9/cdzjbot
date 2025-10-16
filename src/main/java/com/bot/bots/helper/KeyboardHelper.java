@@ -60,20 +60,9 @@ public class KeyboardHelper {
                         row(
                                 buttonText("✍️补充要求", "privacy#supplement#input#"+query)
                         ),
-                        row(buttonText("⤵️跳过补充", "privacy#supplement#confirm#"+query), cancelButton())
+                        row(buttonText("\uD83D\uDD1C跳过补充", "privacy#supplement#confirm#"+query), cancelButton())
                 )).build();
     }
-
-//    public static InlineKeyboardMarkup buildSupplementLocationKeyboard(int query) {
-//        return InlineKeyboardMarkup.builder()
-//                .keyboard(List.of(
-//                        row(
-//                                buttonText("✍️补充要求", "privacy#supplement#input#"+query)
-//                        ),
-//                        row(buttonText("✅立即查询", "privacy#supplement#do_query#"+query), cancelButton())
-//                )).build();
-//    }
-
 
     public static InlineKeyboardMarkup buildPacketKeyboard(Boolean packet, int query) {
         return InlineKeyboardMarkup.builder()
@@ -82,7 +71,7 @@ public class KeyboardHelper {
                                 buttonText(packet == null ? "是" :  packet ? "✅是" : "是", "privacy#packet#true#"+query),
                                 buttonText(packet == null ? "否" : !packet ? "✅否" : "否", "privacy#packet#false#"+query)
                         ),
-                        row(buttonText("⤵️下一步", "privacy#packet#confirm#"+query), cancelButton())
+                        row(buttonText("\uD83D\uDD1C 下一步", "privacy#packet#confirm#"+query), cancelButton())
                 )).build();
     }
 
@@ -93,7 +82,7 @@ public class KeyboardHelper {
                                 buttonText(CollUtil.isNotEmpty(models) && models.contains("专群") ? "✅" + "专群" : "专群", "privacy#model#1#"+query),
                                 buttonText(CollUtil.isNotEmpty(models) && models.contains("面交") ? "✅" + "面交" : "面交", "privacy#model#2#"+query)
                         ),
-                        row(buttonText("⤵️下一步", "privacy#model#confirm#"+query), cancelButton())
+                        row(buttonText("\uD83D\uDD1C下一步", "privacy#model#confirm#"+query), cancelButton())
                 )).build();
     }
 
@@ -151,7 +140,7 @@ public class KeyboardHelper {
                                 buttonText(follow == null ? "是" :  follow ? "✅是" : "是", "privacy#follow#true"),
                                 buttonText(follow == null ? "否" : !follow ? "✅否" : "否", "privacy#follow#false")
                         ),
-                        row(buttonText("⤵️下一步", "privacy#follow#confirm"), cancelButton())
+                        row(buttonText("\uD83D\uDD1C下一步", "privacy#follow#confirm"), cancelButton())
                 )).build();
     }
 
@@ -162,7 +151,7 @@ public class KeyboardHelper {
                                 buttonText(move == null ? "是" :  move ? "✅是" : "是", "privacy#move#true"),
                                 buttonText(move == null ? "否" : !move ? "✅否" : "否", "privacy#move#false")
                         ),
-                        row(buttonText("⤵️下一步", "privacy#move#confirm"), cancelButton())
+                        row(buttonText("\uD83D\uDD1C下一步", "privacy#move#confirm"), cancelButton())
                 )).build();
     }
 
@@ -173,7 +162,7 @@ public class KeyboardHelper {
                                 buttonText(station == null ? "是" :  station ? "✅是" : "是", "privacy#station#true"),
                                 buttonText(station == null ? "否" : !station ? "✅否" : "否", "privacy#station#false")
                         ),
-                        row(buttonText("⤵️下一步", "privacy#station#confirm"), cancelButton())
+                        row(buttonText("\uD83D\uDD1C下一步", "privacy#station#confirm"), cancelButton())
                 )).build();
     }
 
@@ -184,7 +173,7 @@ public class KeyboardHelper {
                                 buttonText(airborne == null ? "是" : ( airborne ? "✅是" : "是"), "privacy#airborne#true"),
                                 buttonText(airborne == null ? "否" : (!airborne ? "✅否" : "否"), "privacy#airborne#false")
                         ),
-                        row(buttonText("⤵️下一步", "privacy#airborne#confirm"), cancelButton())
+                        row(buttonText("\uD83D\uDD1C下一步", "privacy#airborne#confirm"), cancelButton())
                 )).build();
     }
 
@@ -208,7 +197,7 @@ public class KeyboardHelper {
             n ++;
         }
 
-        rows.add(row(buttonText("⤵️下一步", "privacy#forbid#confirm"), cancelButton()));
+        rows.add(row(buttonText("\uD83D\uDD1C下一步", "privacy#forbid#confirm"), cancelButton()));
         return InlineKeyboardMarkup.builder()
                 .keyboard(rows).build();
     }
@@ -223,7 +212,7 @@ public class KeyboardHelper {
 
         return InlineKeyboardMarkup.builder()
                 .keyboard(List.of(row,
-                        row(buttonText("⤵️下一步", "privacy#material#confirm"), cancelButton())
+                        row(buttonText("\uD83D\uDD1C下一步", "privacy#material#confirm"), cancelButton())
                 )).build();
     }
 
@@ -231,7 +220,7 @@ public class KeyboardHelper {
         return InlineKeyboardMarkup.builder()
                 .keyboard(List.of(
                         row(buttonText("汇率+0.05", "privacy#input#rate#increment"), buttonText("汇率-0.05", "privacy#input#rate#subtract")),
-                        row(buttonText("⤵️下一步", "privacy#input#rate#confirm"), cancelButton())
+                        row(buttonText("\uD83D\uDD1C下一步", "privacy#input#rate#confirm"), cancelButton())
                 )).build();
     }
 
@@ -268,7 +257,7 @@ public class KeyboardHelper {
         }
 
         InlineKeyboardRow last = new InlineKeyboardRow();
-        last.add(buttonText("⤵️下一步", "privacy#input#interval#show#" + query));  // 输入金额区间
+        last.add(buttonText("\uD83D\uDD1C下一步", "privacy#input#interval#show#" + query));  // 输入金额区间
         last.add(cancelButton());
         rows.add(last);
         return InlineKeyboardMarkup.builder().keyboard(rows).build();
@@ -410,10 +399,26 @@ public class KeyboardHelper {
         return ReplyKeyboardMarkup.builder()
                 .resizeKeyboard(true)
                 .keyboard(List.of(
-                        new KeyboardRow(List.of(KeyboardButton.builder().text("承兑报备").build(), KeyboardButton.builder().text("车队报备").build(), KeyboardButton.builder().text("卸货合作商").build())),
-                        new KeyboardRow(List.of(KeyboardButton.builder().text("承兑所在地").build(), KeyboardButton.builder().text("车队所在地").build(), KeyboardButton.builder().text("卸货所在地").build())),
-                        new KeyboardRow(List.of(KeyboardButton.builder().text("骗子曝光").build(), KeyboardButton.builder().text("盘总料方合作洽谈").build())),
-                        new KeyboardRow(List.of(KeyboardButton.builder().text("供需方发布").build(), KeyboardButton.builder().text("联系客服").build(), KeyboardButton.builder().text("我的").build()))
+                        new KeyboardRow(List.of(
+                                KeyboardButton.builder().text("\uD83D\uDC81\uD83C\uDFFB\u200d♂️承兑报备").build(),
+                                KeyboardButton.builder().text("\uD83D\uDE97车队报备").build(),
+                                KeyboardButton.builder().text("\uD83E\uDDCF\uD83C\uDFFB\u200d♂️卸货合作商").build())
+                        ),
+                        new KeyboardRow(List.of(
+                                KeyboardButton.builder().text("\uD83D\uDC81\uD83C\uDFFC\u200d♀️承兑所在地").build(),
+                                KeyboardButton.builder().text("\uD83D\uDE95车队所在地").build(),
+                                KeyboardButton.builder().text("\uD83E\uDDCF\uD83C\uDFFB\u200d♀️卸货所在地").build())
+                        ),
+                        new KeyboardRow(List.of(
+                                KeyboardButton.builder().text("\uD83D\uDFE2供需发布").build(),
+                                KeyboardButton.builder().text("\uD83D\uDD0D查汇率").build(),
+                                KeyboardButton.builder().text("\uD83D\uDD0E骗子曝光").build())
+                        ),
+                        new KeyboardRow(List.of(
+                                KeyboardButton.builder().text("\uD83D\uDCF2合作洽谈").build(),
+                                KeyboardButton.builder().text("\uD83D\uDCAC联系客服").build(),
+                                KeyboardButton.builder().text("❤️我的余额").build())
+                        )
                 )).build();
     }
 
@@ -512,7 +517,7 @@ public class KeyboardHelper {
     }
 
     public static InlineKeyboardButton cancelButton () {
-        return InlineKeyboardButton.builder().text("\uD83D\uDDD1取消").callbackData("delete").build();
+        return InlineKeyboardButton.builder().text("❌取消").callbackData("delete").build();
     }
 
      public static InlineKeyboardButton buttonText (String name, String callback) {

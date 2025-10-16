@@ -24,7 +24,10 @@ public enum TempEnum {
 
     EXCHANGE_INPUT_CUSTOM_SCOPE(4, "承兑所在地查询自定义输入范围"),
     PARTNER_SUPPLEMENT_INPUT(5, "卸货合作商，输入补充要求"),
-    LOCATION_SUPPLEMENT_INPUT(6, "卸货所在地，输入补充要求")
+    LOCATION_SUPPLEMENT_INPUT(6, "卸货所在地，输入补充要求"),
+
+
+    CHECK_EXCHANGE_RATE_INPUT(7, "查汇率")
 
     ;
 

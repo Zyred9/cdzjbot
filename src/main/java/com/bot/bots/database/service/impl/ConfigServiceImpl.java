@@ -33,6 +33,9 @@ public class ConfigServiceImpl extends ServiceImpl<ConfigMapper, Config> impleme
             config = new Config()
                     .setCustomText("")
                     .setCustomKeyboard("{}")
+                    .setSelfText("")
+                    .setSelfKeyboard("{}")
+                    .setQueryKeyboard("{}")
                     .setEditable(List.of())
                     .setChatId(this.properties.getBackgroundId());
 

@@ -42,6 +42,9 @@ public class Config {
     @TableField(typeHandler = JacksonTypeHandler.class)
     private List<Long> editable;
 
+    /** 查U **/
+    private String queryKeyboard;
+
 
     public boolean hasEdit (Long userId) {
         return CollUtil.contains(this.editable, userId);

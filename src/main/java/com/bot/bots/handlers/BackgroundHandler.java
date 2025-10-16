@@ -15,7 +15,6 @@ import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.message.Message;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -67,14 +66,26 @@ public class BackgroundHandler extends AbstractHandler {
 
             List<String> split = StrUtil.split(text, "&");
             String content = StrUtil.trim(split.get(1));
+            String json = KeyboardHelper.parseKeyboard(split.get(2));
 
             if (custom) {
                 config.setCustomText(content);
-                config.setCustomKeyboard(KeyboardHelper.parseKeyboard(split.get(2)));
-            } else {
+                config.setCustomKeyboard(json);
+            } else  {
                 config.setSelfText(content);
-                config.setSelfKeyboard(KeyboardHelper.parseKeyboard(split.get(2)));
+                config.setSelfKeyboard(json);
             }
+            this.configService.updateById(config);
+            return reply(message);
+        }
+
+        /*
+            查U&按钮1#https://t.me/xmkfjqr|按钮2#https://t.me/xmkfjqr$按钮3#https://t.me/xmkfjqr
+        */
+        if (StrUtil.equals(commands.get(0), "查U")) {
+            List<String> split = StrUtil.split(text, "&");
+            String json = KeyboardHelper.parseKeyboard(split.get(1).trim());
+            config.setQueryKeyboard(json);
             this.configService.updateById(config);
             return reply(message);
         }

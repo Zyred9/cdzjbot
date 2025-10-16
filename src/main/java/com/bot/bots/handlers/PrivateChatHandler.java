@@ -6,15 +6,13 @@ import com.bot.bots.beans.caffeine.CountdownCaffeine;
 import com.bot.bots.beans.chat.ChatQueryHandler;
 import com.bot.bots.beans.view.Scheduled;
 import com.bot.bots.beans.view.ctx.AcceptanceContext;
+import com.bot.bots.beans.view.trx.PriceBean;
 import com.bot.bots.config.BotProperties;
 import com.bot.bots.config.Constants;
 import com.bot.bots.database.entity.*;
 import com.bot.bots.database.enums.*;
 import com.bot.bots.database.service.*;
-import com.bot.bots.helper.DecimalHelper;
-import com.bot.bots.helper.KeyboardHelper;
-import com.bot.bots.helper.MapUtil;
-import com.bot.bots.helper.StrHelper;
+import com.bot.bots.helper.*;
 import com.bot.bots.sender.AsyncSender;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -24,6 +22,7 @@ import org.telegram.telegrambots.meta.api.objects.message.Message;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -41,6 +40,7 @@ import java.util.Objects;
 public class PrivateChatHandler extends AbstractHandler{
 
     private final MapUtil mapUtil;
+    private final HttpHelper httpHelper;
     private final UserService userService;
     private final BotProperties properties;
     private final ConfigService configService;
@@ -75,7 +75,7 @@ public class PrivateChatHandler extends AbstractHandler{
             return reply(message, Constants.START_TEXT, KeyboardHelper.buildStartKeyboard());
         }
 
-        if (StrUtil.equals(text, "联系客服")) {
+        if (StrUtil.equals(text, "\uD83D\uDCAC联系客服")) {
             Config config = this.configService.queryConfig();
             if (StrUtil.isBlank(config.getCustomText())) {
                 return null;
@@ -84,7 +84,7 @@ public class PrivateChatHandler extends AbstractHandler{
             return markdownReply(message, config.getCustomText(), keyboard);
         }
 
-        if (StrUtil.equals(text, "盘总料方合作洽谈")) {
+        if (StrUtil.equals(text, "\uD83D\uDCF2合作洽谈")) {
             Config config = this.configService.queryConfig();
             if (StrUtil.isBlank(config.getSelfText())) {
                 return null;
@@ -93,19 +93,19 @@ public class PrivateChatHandler extends AbstractHandler{
             return markdownReply(message, config.getSelfText(), keyboard);
         }
 
-        if (StrUtil.equals(text, "骗子曝光")) {
+        if (StrUtil.equals(text, "\uD83D\uDD0E骗子曝光")) {
             // 进入骗子曝光流程：回复模版与功能键盘，设置缓存等待用户提交
             CommonCache.put(message.getFrom().getId(), TempEnum.INPUT_PZ_EXPOSE_TEXT);
             return markdownReply(message, Constants.PZ_EXPOSE_TEMPLATE);
         }
 
-        if (StrUtil.equals(text, "我的")) {
+        if (StrUtil.equals(text, "❤️我的余额")) {
             User user = this.userService.queryUser(message.getFrom());
             String selfText = user.buildSelfText();
             return markdownReply(message, selfText);
         }
 
-        if (StrUtil.equals(text, "供需方发布")) {
+        if (StrUtil.equals(text, "\uD83D\uDFE2供需发布")) {
             User user = this.userService.queryUser(message.getFrom());
 
             // 余额不足
@@ -123,40 +123,45 @@ public class PrivateChatHandler extends AbstractHandler{
             return markdown(message, Constants.P_C_PUBLISH_TEXT);
         }
 
-        if (StrUtil.equals(text, "承兑报备")) {
+        if (StrUtil.equals(text, "\uD83D\uDC81\uD83C\uDFFB\u200d♂️承兑报备")) {
             List<Address> address = this.addressService.selectProvince();
             InlineKeyboardMarkup markup = KeyboardHelper.buildProvinceKeyboard(address, AddressParam.EXCHANGE.getCode());
             return ok(message, Constants.ACCEPTANCE_FILING_TEXT, markup);
         }
 
-        if (StrUtil.equals(text, "车队报备")) {
+        if (StrUtil.equals(text, "\uD83D\uDE97车队报备")) {
             CommonCache.put(message.getFrom().getId(), TempEnum.CAR_TEAM_INPUT);
             return markdownReply(message, Constants.CAT_TEAM_TEXT);
         }
 
 
-        if (StrUtil.equals(text, "承兑所在地")) {
+        if (StrUtil.equals(text, "\uD83D\uDC81\uD83C\uDFFC\u200d♀️承兑所在地")) {
             List<Address> address = this.addressService.selectProvince();
             InlineKeyboardMarkup markup = KeyboardHelper.buildProvinceKeyboard(address, AddressParam.QUERY_EXCHANGE.getCode());
             return markdownReply(message, Constants.PROVINCE_LOCATION_TEXT, markup);
         }
 
-        if (StrUtil.equals(text, "车队所在地")) {
+        if (StrUtil.equals(text, "\uD83D\uDE95车队所在地")) {
             List<Address> address = this.addressService.selectProvince();
             InlineKeyboardMarkup markup = KeyboardHelper.buildProvinceKeyboard(address, AddressParam.QUERY_TEAM.getCode());
             return markdownReply(message, Constants.CAT_TEAM_ADDRESS_TEXT, markup);
         }
 
-        if (StrUtil.equals(text, "卸货合作商")) {
+        if (StrUtil.equals(text, "\uD83E\uDDCF\uD83C\uDFFB\u200d♂️卸货合作商")) {
             List<Address> address = this.addressService.selectProvince();
             InlineKeyboardMarkup markup = KeyboardHelper.buildProvinceKeyboard(address, AddressParam.UNLOADING_PARTNER.getCode());
             return markdownReply(message, Constants.UNLOADING_PARTNER_TEXT, markup);
         }
 
-        if (StrUtil.equals(text, "卸货所在地")) {
+        if (StrUtil.equals(text, "\uD83E\uDDCF\uD83C\uDFFB\u200d♀️卸货所在地")) {
             List<Address> address = this.addressService.selectProvince();
             InlineKeyboardMarkup markup = KeyboardHelper.buildProvinceKeyboard(address, AddressParam.UNLOADING_LOCATION.getCode());
             return markdownReply(message, Constants.UNLOADING_LOCATION_TEXT, markup);
+        }
+
+        if (StrUtil.equals(text, "\uD83D\uDD0D查汇率")) {
+            CommonCache.put(message.getFrom().getId(), TempEnum.CHECK_EXCHANGE_RATE_INPUT);
+            return markdownReply(message, Constants.CHECK_EXCHANGE_RATE_TEXT);
         }
 
         // 用户有缓存
@@ -168,6 +173,16 @@ public class PrivateChatHandler extends AbstractHandler{
     }
 
     private BotApiMethod<?> processorCache(Message message) {
+
+        TempEnum tempEnum = CommonCache.get(message.getFrom().getId());
+        if (Objects.equals(tempEnum, TempEnum.CHECK_EXCHANGE_RATE_INPUT)) {
+            String query = this.parseAndQuery(message.getText());
+            Config config = this.configService.queryConfig();
+            InlineKeyboardMarkup keyboard = KeyboardHelper.keyboard(config.getQueryKeyboard());
+            return markdown(message, query, keyboard);
+        }
+
+
         TempEnum temp = CommonCache.getIfRemove(message.getFrom().getId());
         if (Objects.equals(temp, TempEnum.INPUT_PUBLISH_TEXT)) {
             String text = message.getText();
@@ -287,9 +302,32 @@ public class PrivateChatHandler extends AbstractHandler{
             return markdown(message, text, markup);
         }
 
-
         return null;
     }
+
+
+
+    private String parseAndQuery(String text) {
+        PaymentEnum payment = PaymentEnum.of(text);
+        List<PriceBean> priceBeans = this.httpHelper.doQueryOkx(payment, "buy");
+
+        StringBuilder sb = new StringBuilder()
+                .append("*OTC商家实时价格*").append("\n")
+                        .append("筛选：").append(payment.getDesc()).append("欧意").append("\n");
+
+        for (PriceBean priceBean : priceBeans) {
+            sb.append("`").append(priceBean.getPrice()).append("\t\t").append(priceBean.getNickName()).append("`\n");
+        }
+        return sb.toString();
+    }
+
+
+
+
+
+
+
+
 
 
 }
