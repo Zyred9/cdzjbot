@@ -1,5 +1,6 @@
 package com.bot.bots.web;
 
+import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.bot.bots.database.entity.AcceptanceCtx;
@@ -10,6 +11,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Objects;
 
 /**
  * 承兑报备数据 PC端展示 Controller
@@ -89,9 +92,17 @@ public class AcceptanceCtxController {
     @ResponseBody
     public Page<AcceptanceCtx> list(
             @RequestParam(defaultValue = "1") long pageNo,
-            @RequestParam(defaultValue = "10") long pageSize) {
+            @RequestParam(defaultValue = "10") long pageSize,
+            @RequestParam(required = false) Long userId,
+            @RequestParam(required = false) String username,
+            @RequestParam(required = false) String nickname,
+            @RequestParam(required = false) String address) {
         pageNo = Math.max(1, pageNo);
         pageSize = Math.max(1, Math.min(100, pageSize));
-        return acceptanceCtxService.page(Page.of(pageNo, pageSize), Wrappers.lambdaQuery());
+        return acceptanceCtxService.page(Page.of(pageNo, pageSize), Wrappers.<AcceptanceCtx>lambdaQuery()
+                .eq(Objects.nonNull(userId), AcceptanceCtx::getUserId, userId)
+                .eq(StrUtil.isNotBlank(username), AcceptanceCtx::getUsername, username)
+                .like(StrUtil.isNotBlank(nickname), AcceptanceCtx::getNickname, nickname)
+                .like(StrUtil.isNotBlank(address), AcceptanceCtx::getAddress, address));
     }
 }

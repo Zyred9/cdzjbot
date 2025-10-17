@@ -1,5 +1,6 @@
 package com.bot.bots.web;
 
+import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.bot.bots.database.entity.Config;
@@ -10,6 +11,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Objects;
 
 /**
  * 车队报备数据 PC端展示 Controller
@@ -83,9 +86,18 @@ public class TeamCtxController {
     @ResponseBody
     public Page<TeamCtx> list(
             @RequestParam(defaultValue = "1") long pageNo,
-            @RequestParam(defaultValue = "10") long pageSize) {
+            @RequestParam(defaultValue = "10") long pageSize,
+            @RequestParam(required = false) Long userId,
+            @RequestParam(required = false) String username,
+            @RequestParam(required = false) String nickname,
+            @RequestParam(required = false) String address) {
         pageNo = Math.max(1, pageNo);
         pageSize = Math.max(1, Math.min(100, pageSize));
-        return teamCtxService.page(Page.of(pageNo, pageSize), Wrappers.lambdaQuery());
+        return teamCtxService.page(Page.of(pageNo, pageSize),
+                Wrappers.<TeamCtx>lambdaQuery()
+                        .eq(Objects.nonNull(userId), TeamCtx::getUserId, userId)
+                        .eq(StrUtil.isNotBlank(username), TeamCtx::getUsername, username)
+                        .like(StrUtil.isNotBlank(nickname), TeamCtx::getNickname, nickname)
+                        .like(StrUtil.isNotBlank(address), TeamCtx::getAddress, address));
     }
 }
