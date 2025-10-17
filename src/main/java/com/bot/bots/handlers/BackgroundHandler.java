@@ -82,7 +82,7 @@ public class BackgroundHandler extends AbstractHandler {
         /*
             查U&按钮1#https://t.me/xmkfjqr|按钮2#https://t.me/xmkfjqr$按钮3#https://t.me/xmkfjqr
         */
-        if (StrUtil.equals(commands.get(0), "查U")) {
+        if (StrUtil.startWith(commands.get(0), "查U&")) {
             List<String> split = StrUtil.split(text, "&");
             String json = KeyboardHelper.parseKeyboard(split.get(1).trim());
             config.setQueryKeyboard(json);
