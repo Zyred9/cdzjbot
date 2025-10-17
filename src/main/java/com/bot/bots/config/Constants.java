@@ -17,7 +17,7 @@ public interface Constants {
             https://apilist.tronscanapi.com/api/filter/trc20/transfers?sort=-timestamp&count=true&limit=20&start=0&filterTokenValue=0&relatedAddress={}&start_timestamp={}
             """;
     String OKX_BOOTS = """
-            https://www.okx.com/v3/c2c/tradingOrders/books?quoteCurrency=cny&baseCurrency=usdt&side={}&limit=15&sort=price&order=asc
+            https://www.okx.com/v3/c2c/tradingOrders/books?quoteCurrency=cny&baseCurrency=usdt&side={}&limit=10&sort=price&order=desc
             """;
 
     String TOKEN_KEY = "BOT_TOKEN";

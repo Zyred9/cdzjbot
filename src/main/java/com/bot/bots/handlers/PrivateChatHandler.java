@@ -302,15 +302,13 @@ public class PrivateChatHandler extends AbstractHandler{
             String text = CommonCache.accCtxText(message.getFrom().getId());
             return markdown(message, text, markup);
         }
-
         return null;
     }
 
 
-
-    private String parseAndQuery(String text) {
+    public String parseAndQuery(String text) {
         PaymentEnum payment = PaymentEnum.of(text);
-        List<PriceBean> priceBeans = this.httpHelper.doQueryOkx(payment, "buy");
+        List<PriceBean> priceBeans = this.httpHelper.doQueryOkx(payment, "sell");
         priceBeans.sort(Comparator.comparing(PriceBean::getPrice));
 
         StringBuilder sb = new StringBuilder()

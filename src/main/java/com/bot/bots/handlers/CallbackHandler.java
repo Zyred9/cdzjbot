@@ -204,11 +204,16 @@ public class CallbackHandler extends AbstractHandler {
 
             InlineKeyboardMarkup markup;
             if (StrUtil.equals(packet, "confirm")) {
-                // ctx.setShowSupplement(true);
-                // markup = KeyboardHelper.buildSupplementKeyboard(query);
-                // TODO
-                ctx.setShowScope(true);
-                markup = KeyboardHelper.buildScopeKeyboard(query, ctx.getScope());
+
+                if (Objects.equals(query, AddressParam.UNLOADING_PARTNER.getCode())) {
+                     ctx.setShowSupplement(true);
+                     markup = KeyboardHelper.buildSupplementKeyboard(query);
+                }
+                else {
+                    ctx.setShowScope(true);
+                    markup = KeyboardHelper.buildScopeKeyboard(query, ctx.getScope());
+                }
+
             } else {
                 ctx.setPacket(Boolean.parseBoolean(packet));
                 markup = KeyboardHelper.buildPacketKeyboard(ctx.getPacket(), query);

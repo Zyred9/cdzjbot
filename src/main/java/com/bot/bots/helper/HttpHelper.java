@@ -52,7 +52,7 @@ public class HttpHelper {
         }
         JSONObject jsonObject = JSONUtil.parseObj(responseBody);
         JSONObject dataObject = (JSONObject)jsonObject.getObj("data");
-        JSONArray buy = dataObject.getJSONArray("buy");
+        JSONArray buy = dataObject.getJSONArray("sell");
         return JSONUtil.toList(buy, PriceBean.class);
     }
 
