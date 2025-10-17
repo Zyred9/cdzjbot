@@ -75,6 +75,13 @@ public class AcceptanceContext {
     private boolean showSupplement;
     private String supplement;
 
+    // 新增字段，location
+    private String location;
+    // 新增字段，距离
+    private Integer distance;
+    // 新增字段，地址
+    private String address;
+
 
     public AcceptanceCtx buildCtx () {
         return new AcceptanceCtx()
@@ -181,7 +188,7 @@ public class AcceptanceContext {
 
         if (Objects.isNull(ctx.getAirborne())) {
             if (ctx.isShowAirborne()) {
-                sb.append("是否空降：（全国飞，一般常驻机场附近，机票全包，落地再飞，步跑空）").append("\n");
+                sb.append("是否空降：（全国飞，一般常驻机场附近，机票全包，落地再飞，不跑空）").append("\n");
             }
         } else {
             sb.append("是否空降：").append(ctx.getAirborne() ? "是" : "否").append("\n");

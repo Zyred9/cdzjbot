@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
+import com.bot.bots.beans.view.ctx.AcceptanceContext;
 import com.bot.bots.database.enums.CategoryEnum;
 import com.bot.bots.database.enums.ForbidTypeEnum;
 import com.bot.bots.database.enums.MaterialEnum;
@@ -62,4 +63,22 @@ public class AcceptanceCtx {
 
     @TableField(exist = false)
     private Integer distance;
+
+
+    public AcceptanceContext buildContext () {
+        return AcceptanceContext.builder()
+                .address(this.address)
+                .categories(this.categories)
+                .intervalInput(this.intervalInput)
+                .rate(this.rate)
+                .materials(this.materials)
+                .forbids(this.forbids)
+                .airborne(this.airborne)
+                .station(this.station)
+                .move(this.move)
+                .follow(this.follow)
+                .location(this.location)
+                .distance(this.distance)
+                .build();
+    }
 }

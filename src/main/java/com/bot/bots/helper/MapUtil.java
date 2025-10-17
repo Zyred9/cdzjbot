@@ -6,6 +6,7 @@ import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONArray;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
+import com.bot.bots.beans.view.ctx.AcceptanceContext;
 import com.bot.bots.config.BotProperties;
 import com.bot.bots.database.entity.AcceptanceCtx;
 import lombok.RequiredArgsConstructor;
@@ -98,19 +99,17 @@ public class MapUtil {
      * @param ctxList        终点列表，读取 AcceptanceCtx.getAddress()/getUserId 等自行扩展
      * @param consumer       完成后的回调，参数为与 ctxList 顺序一致的距离（米，可能为 null）列表
      */
-    public void multiDriving(int scope, String originLocation, List<AcceptanceCtx> ctxList, Consumer<List<AcceptanceCtx>> consumer) {
+    public void multiDriving(int scope, String originLocation, List<AcceptanceContext> ctxList, Consumer<List<AcceptanceContext>> consumer) {
         if (CollUtil.isEmpty(ctxList)) {
             consumer.accept(Collections.emptyList());
             return;
         }
         // 防御式拷贝，避免调用方并发修改列表导致统计偏差；使用固定总数进行完成判断
-        final List<AcceptanceCtx> targets = List.copyOf(ctxList);
-        final int total = targets.size();
         // 为本次调用创建独立的批次上下文，确保并发多次调用时互不干扰
-        final List<AcceptanceCtx> batchAccepted = Collections.synchronizedList(new ArrayList<>());
+        final List<AcceptanceContext> batchAccepted = Collections.synchronizedList(new ArrayList<>());
         final AtomicInteger batchDone = new AtomicInteger(0);
 
-        for (AcceptanceCtx item : ctxList) {
+        for (AcceptanceContext item : ctxList) {
             Runnable job = () -> {
                 try {
                     if (Objects.nonNull(item) && StrUtil.isNotBlank(item.getLocation())) {
@@ -123,7 +122,7 @@ public class MapUtil {
                 } catch (Exception ex) {
                     log.warn("[MapUtil] 单次驾车规划失败：{}", ex.getMessage());
                 } finally {
-                    if (batchDone.incrementAndGet() == total) {
+                    if (batchDone.incrementAndGet() == ctxList.size()) {
                         try {
                             consumer.accept(batchAccepted);
                         } catch (Exception cbEx) {

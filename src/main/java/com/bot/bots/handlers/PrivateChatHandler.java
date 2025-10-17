@@ -23,6 +23,7 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMa
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -147,13 +148,13 @@ public class PrivateChatHandler extends AbstractHandler{
             return markdownReply(message, Constants.CAT_TEAM_ADDRESS_TEXT, markup);
         }
 
-        if (StrUtil.equals(text, "\uD83E\uDDCF\uD83C\uDFFB\u200d♂️卸货合作商")) {
+        if (StrUtil.equals(text, "\uD83D\uDCB9U商报备")) {
             List<Address> address = this.addressService.selectProvince();
             InlineKeyboardMarkup markup = KeyboardHelper.buildProvinceKeyboard(address, AddressParam.UNLOADING_PARTNER.getCode());
             return markdownReply(message, Constants.UNLOADING_PARTNER_TEXT, markup);
         }
 
-        if (StrUtil.equals(text, "\uD83E\uDDCF\uD83C\uDFFB\u200d♀️卸货所在地")) {
+        if (StrUtil.equals(text, "\uD83C\uDE2F️U商所在地")) {
             List<Address> address = this.addressService.selectProvince();
             InlineKeyboardMarkup markup = KeyboardHelper.buildProvinceKeyboard(address, AddressParam.UNLOADING_LOCATION.getCode());
             return markdownReply(message, Constants.UNLOADING_LOCATION_TEXT, markup);
@@ -310,6 +311,7 @@ public class PrivateChatHandler extends AbstractHandler{
     private String parseAndQuery(String text) {
         PaymentEnum payment = PaymentEnum.of(text);
         List<PriceBean> priceBeans = this.httpHelper.doQueryOkx(payment, "buy");
+        priceBeans.sort(Comparator.comparing(PriceBean::getPrice));
 
         StringBuilder sb = new StringBuilder()
                 .append("*OTC商家实时价格*").append("\n")

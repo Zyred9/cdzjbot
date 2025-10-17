@@ -204,15 +204,11 @@ public class CallbackHandler extends AbstractHandler {
 
             InlineKeyboardMarkup markup;
             if (StrUtil.equals(packet, "confirm")) {
-                ctx.setShowSupplement(true);
-//                if (Objects.equals(query, AddressParam.UNLOADING_PARTNER.getCode())) {
-//                    markup = KeyboardHelper.buildSupplementKeyboard(query);
-//                } else if (Objects.equals(query, AddressParam.UNLOADING_LOCATION.getCode())){
-//                    markup = KeyboardHelper.buildSupplementLocationKeyboard(query);
-//                } else {
-//                    markup = null;
-//                }
-                markup = KeyboardHelper.buildSupplementKeyboard(query);
+                // ctx.setShowSupplement(true);
+                // markup = KeyboardHelper.buildSupplementKeyboard(query);
+                // TODO
+                ctx.setShowScope(true);
+                markup = KeyboardHelper.buildScopeKeyboard(query, ctx.getScope());
             } else {
                 ctx.setPacket(Boolean.parseBoolean(packet));
                 markup = KeyboardHelper.buildPacketKeyboard(ctx.getPacket(), query);
@@ -242,6 +238,8 @@ public class CallbackHandler extends AbstractHandler {
 
             } else if (StrUtil.equals(supplement, "commit")) {
                 PartnerCtx build = PartnerCtx.build(ctx, callbackQuery.getFrom());
+                String location = this.mapUtil.location(build.getAddress());
+                build.setLocation(location);
                 this.partnerCtxService.save(build);
                 markup = KeyboardHelper.buildSupplementCommitedKeyboard("✅报备已提交", query);
                 AsyncSender.async(ok(callbackQuery.getFrom().getId(), Constants.UNLOADING_PARTNER_SUCCESS_TEXT));
@@ -251,36 +249,44 @@ public class CallbackHandler extends AbstractHandler {
                 if (StrUtil.equals(ctx.getSupplement(), "无")) {
                     ctx.setSupplement("");
                 }
-                List<PartnerCtx> partners = this.partnerCtxService.list(
-                        Wrappers.<PartnerCtx>lambdaQuery()
-                                .eq(PartnerCtx::getAddress, ctx.getAllAddress())
-                                .eq(PartnerCtx::getPacket, ctx.getPacket())
-                                .like(StrUtil.isNotBlank(ctx.getSupplement()), PartnerCtx::getSupplement, ctx.getSupplement()));
-                ctx.setSupplement(a).setShowSupplement(false);
 
-                if (CollUtil.isNotEmpty(partners)) {
+                ThreadHelper.execute(() -> {
+                    String location = this.mapUtil.location(ctx.getAllAddress());
+                    List<PartnerCtx> partners = this.partnerCtxService.list(
+                            Wrappers.<PartnerCtx>lambdaQuery()
+                                    .eq(PartnerCtx::getPacket, ctx.getPacket())
+                                    .like(StrUtil.isNotBlank(ctx.getSupplement()), PartnerCtx::getSupplement, ctx.getSupplement()));
+                    ctx.setSupplement(a).setShowSupplement(false);
 
-                    List<PartnerCtx> results = new ArrayList<>();
-                    Set<String> models = new HashSet<>(ctx.getModels());
-                    for (PartnerCtx partner : partners) {
-                        boolean b = partner.getModels().stream().anyMatch(models::contains);
-                        if (b) {
-                            results.add(partner);
+                    if (CollUtil.isNotEmpty(partners)) {
+                        List<AcceptanceContext> results = new ArrayList<>();
+                        Set<String> models = new HashSet<>(ctx.getModels());
+                        for (PartnerCtx partner : partners) {
+                            if (partner.getModels().stream().anyMatch(models::contains)) {
+                                results.add(partner.buildContext());
+                            }
                         }
-                    }
 
-                    StringBuilder sb = new StringBuilder("*您提交的查询查询结果*").append("\n\n");
-                    int i = 1;
-                    for (PartnerCtx result : results) {
-                        sb.append("`").append(i).append(". ")
-                                .append(result.getAddress())
-                                .append("`\n");
-                        i ++;
+                        this.mapUtil.multiDriving(ctx.getScope(), location, results, (resultLists) -> {
+                            if (CollUtil.isEmpty(resultLists)) {
+                                AsyncSender.async(markdown(message, "您提交的查询没有查询到任何数据...", KeyboardHelper.buildSearchKeyboard()));
+                                return;
+                            }
+
+                            StringBuilder sb = new StringBuilder("*您提交的查询查询结果*").append("\n\n");
+                            int i = 1;
+                            for (AcceptanceContext result : resultLists) {
+                                sb.append("`").append(i).append(". ")
+                                        .append(result.getAddress())
+                                        .append("`\n");
+                                i ++;
+                            }
+                            AsyncSender.async(markdown(message, sb.toString(), KeyboardHelper.buildSearchKeyboard()));
+                        });
+                    } else {
+                        AsyncSender.async(markdown(message, "您提交的查询没有查询到任何数据...", KeyboardHelper.buildSearchKeyboard()));
                     }
-                    AsyncSender.async(markdown(message, sb.toString(), KeyboardHelper.buildSearchKeyboard()));
-                } else {
-                    AsyncSender.async(markdown(message, "您提交的查询没有查询到任何数据...", KeyboardHelper.buildSearchKeyboard()));
-                }
+                });
                 markup = KeyboardHelper.buildSupplementCommitedKeyboard("✅查询已提交", query);
             } else if (StrUtil.equals(supplement, "commited")) {
                 return answerAlert(callbackQuery, "报备已提交...");
@@ -307,52 +313,57 @@ public class CallbackHandler extends AbstractHandler {
                 CommonCache.put(callbackQuery.getFrom().getId(), TempEnum.EXCHANGE_INPUT_CUSTOM_SCOPE);
                 return editMarkdown(message, "请输入您想查找公里数（整数类型）");
             } else if (StrUtil.equals(scope, "confirm")) {
-                String address = ctx.getAllAddress();
 
-                ThreadHelper.execute(() -> {
-                    Long userId = callbackQuery.getFrom().getId();
+                InlineKeyboardMarkup markup;
 
-                    String location = this.mapUtil.location(address);
-                    List<AcceptanceCtx> databaseCtxList = this.acceptanceCtxService.list();
+                // 卸货所在地自定义
+                if (Objects.equals(query, AddressParam.UNLOADING_LOCATION.getCode())) {
+                    markup = KeyboardHelper.buildSupplementKeyboard(query);
+                } else {
+                    String address = ctx.getAllAddress();
+                    ThreadHelper.execute(() -> {
+                        Long userId = callbackQuery.getFrom().getId();
 
-                    // 先过滤物品，再走地址筛选
-                    List<AcceptanceCtx> ctxList = new ArrayList<>(databaseCtxList.size());
-                    Set<CategoryEnum> categories = new HashSet<>(ctx.getCategories());
-                    for (AcceptanceCtx acceptanceCtx : databaseCtxList) {
-                        boolean b = acceptanceCtx.getCategories().stream().anyMatch(categories::contains);
-                        if (b) {
-                            ctxList.add(acceptanceCtx);
+                        String location = this.mapUtil.location(address);
+                        List<AcceptanceCtx> databaseCtxList = this.acceptanceCtxService.list();
+
+                        // 先过滤物品，再走地址筛选
+                        List<AcceptanceContext> ctxList = new ArrayList<>(databaseCtxList.size());
+                        Set<CategoryEnum> categories = new HashSet<>(ctx.getCategories());
+                        for (AcceptanceCtx acceptanceCtx : databaseCtxList) {
+                            boolean b = acceptanceCtx.getCategories().stream().anyMatch(categories::contains);
+                            if (b) {
+                                ctxList.add(acceptanceCtx.buildContext());
+                            }
                         }
-                    }
 
-                    this.mapUtil.multiDriving(ctx.getScope(), location, ctxList, results -> {
-                        if (CollUtil.isEmpty(results)) {
-                            AsyncSender.async(
-                                    markdown(userId, "您提交的查询 [" + address + "] 范围(" + ctx.getScope() + ") 附近暂无承兑所在地，放大区间范围试试！")
-                            );
-                            return;
-                        }
-                        StringBuilder sb = new StringBuilder("*您提交的查询查询结果*").append("\n\n")
-                                .append("*您的输入：*").append(address).append("  ").append(ctx.getScope()).append("\n\n")
-                                .append("*查询结果如下：*").append("\n");
+                        this.mapUtil.multiDriving(ctx.getScope(), location, ctxList, results -> {
+                            if (CollUtil.isEmpty(results)) {
+                                AsyncSender.async(
+                                        markdown(userId, "您提交的查询 [" + address + "] 范围(" + ctx.getScope() + ") 附近暂无承兑所在地，放大区间范围试试！")
+                                );
+                                return;
+                            }
+                            StringBuilder sb = new StringBuilder("*您提交的查询查询结果*").append("\n\n")
+                                    .append("*您的输入：*").append(address).append("  ").append(ctx.getScope()).append("\n\n")
+                                    .append("*查询结果如下：*").append("\n");
 
-
-                        int i = 1;
-                        for (AcceptanceCtx result : results) {
-                            Integer distance = result.getDistance() / 1000;
-                            sb.append(i).append(" ： ")
-                                    .append(distance)
-                                    .append("公里").append("   `")
-                                    .append(result.getAddress())
-                                    .append("`\n");
-                            i ++;
-                        }
-                        AsyncSender.async(markdown(userId, sb.toString(), KeyboardHelper.buildSearchKeyboard()));
+                            int i = 1;
+                            for (AcceptanceContext result : results) {
+                                Integer distance = result.getDistance() / 1000;
+                                sb.append(i).append(" ： ")
+                                        .append(distance)
+                                        .append("公里").append("   `")
+                                        .append(result.getAddress())
+                                        .append("`\n");
+                                i ++;
+                            }
+                            AsyncSender.async(markdown(userId, sb.toString(), KeyboardHelper.buildSearchKeyboard()));
+                        });
                     });
-                });
-
+                    markup = KeyboardHelper.buildLoadKeyboard();
+                }
                 String text = CommonCache.accCtxText(callbackQuery.getFrom().getId());
-                InlineKeyboardMarkup markup = KeyboardHelper.buildLoadKeyboard();
                 return editMarkdown(message, text, markup);
             } else {
                 int i = Integer.parseInt(scope);

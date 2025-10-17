@@ -45,6 +45,18 @@ public class PartnerCtx {
     private Boolean packet;
     // 补充要求
     private String supplement;
+    // 经纬度
+    private String location;
+
+    public AcceptanceContext buildContext () {
+        return AcceptanceContext.builder()
+                .address(this.address)
+                .models(this.models)
+                .packet(this.packet)
+                .supplement(this.supplement)
+                .location(this.location)
+                .build();
+    }
 
 
     public static PartnerCtx build (AcceptanceContext ctx, User user) {

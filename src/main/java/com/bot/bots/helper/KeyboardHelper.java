@@ -405,12 +405,12 @@ public class KeyboardHelper {
                         new KeyboardRow(List.of(
                                 KeyboardButton.builder().text("\uD83D\uDC81\uD83C\uDFFB\u200d♂️承兑报备").build(),
                                 KeyboardButton.builder().text("\uD83D\uDE97车队报备").build(),
-                                KeyboardButton.builder().text("\uD83E\uDDCF\uD83C\uDFFB\u200d♂️卸货合作商").build())
+                                KeyboardButton.builder().text("\uD83D\uDCB9U商报备").build())
                         ),
                         new KeyboardRow(List.of(
                                 KeyboardButton.builder().text("\uD83D\uDC81\uD83C\uDFFC\u200d♀️承兑所在地").build(),
                                 KeyboardButton.builder().text("\uD83D\uDE95车队所在地").build(),
-                                KeyboardButton.builder().text("\uD83E\uDDCF\uD83C\uDFFB\u200d♀️卸货所在地").build())
+                                KeyboardButton.builder().text("\uD83C\uDE2F️U商所在地").build())
                         ),
                         new KeyboardRow(List.of(
                                 KeyboardButton.builder().text("\uD83D\uDFE2供需发布").build(),
