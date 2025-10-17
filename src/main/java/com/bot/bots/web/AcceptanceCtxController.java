@@ -48,8 +48,8 @@ public class AcceptanceCtxController {
     /**
      * 根据ID查询
      */
-    @GetMapping("/api/acceptance/{id}")
     @ResponseBody
+    @GetMapping("/api/acceptance/{id}")
     public AcceptanceCtx getById(@PathVariable Long id) {
         return acceptanceCtxService.getById(id);
     }
@@ -63,8 +63,8 @@ public class AcceptanceCtxController {
      * Body: AcceptanceCtx JSON（包含需要更新的字段）
      * </pre>
      */
-    @PutMapping("/api/acceptance/{id}")
     @ResponseBody
+    @PutMapping("/api/acceptance/{id}")
     public boolean update(@PathVariable Long id, @RequestBody AcceptanceCtx body) {
         return acceptanceCtxService.updateById(body);
     }
@@ -72,9 +72,9 @@ public class AcceptanceCtxController {
     /**
      * 根据ID删除
      */
-    @DeleteMapping("/api/acceptance/{id}")
     @ResponseBody
-    public boolean delete(@PathVariable Long id, @RequestParam("userId") Long userId) {
+    @DeleteMapping("/api/acceptance/{id}")
+    public boolean delete(@PathVariable Long id) {
         return acceptanceCtxService.removeById(id);
     }
 
@@ -88,8 +88,8 @@ public class AcceptanceCtxController {
      * GET /api/acceptance/list?pageNo=1&pageSize=10&username=test
      * </pre>
      */
-    @GetMapping("/api/acceptance/list")
     @ResponseBody
+    @GetMapping("/api/acceptance/list")
     public Page<AcceptanceCtx> list(
             @RequestParam(defaultValue = "1") long pageNo,
             @RequestParam(defaultValue = "10") long pageSize,
