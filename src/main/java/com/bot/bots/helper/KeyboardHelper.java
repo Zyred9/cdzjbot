@@ -30,7 +30,7 @@ public class KeyboardHelper {
     public static InlineKeyboardMarkup buildSearchKeyboard() {
         return InlineKeyboardMarkup.builder()
                 .keyboard(List.of(
-                        row(buttonUrl("\uD83D\uDC81\uD83C\uDFFB\u200d♀️联系承兑", "https://t.me/CDZJkefu"))
+                        row(buttonUrl("\uD83D\uDC81\uD83C\uDFFB\u200d♀️请转发查询结果 联系客服", "https://t.me/CDZJkefu"))
                 )).build();
     }
 

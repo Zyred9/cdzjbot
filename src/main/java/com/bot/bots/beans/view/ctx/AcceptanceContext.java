@@ -15,6 +15,7 @@ import lombok.experimental.Accessors;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
@@ -82,6 +83,10 @@ public class AcceptanceContext {
     // 新增字段，地址
     private String address;
 
+
+    public List<CategoryEnum> getCategories() {
+        return CollUtil.isEmpty(this.categories) ? Collections.emptyList() : this.categories;
+    }
 
     public AcceptanceCtx buildCtx () {
         return new AcceptanceCtx()

@@ -132,34 +132,27 @@ public class CallbackHandler extends AbstractHandler {
             int query = Integer.parseInt(commands.get(4));
             AcceptanceContext ctx = CommonCache.getAccCtx(callbackQuery.getFrom().getId());
 
+            Address address = this.addressService.selectOneCounty(countyCode);
+            ctx.setCountyName(address.getCountyName());
+
+            InlineKeyboardMarkup markup = null;
             // 承兑和承兑所在地
             if (Objects.equals(query, AddressParam.EXCHANGE.getCode())
                     || Objects.equals(query, AddressParam.QUERY_EXCHANGE.getCode())){
-                Address address = this.addressService.selectOneCounty(countyCode);
-                ctx.setCountyName(address.getCountyName());
-                InlineKeyboardMarkup markup = KeyboardHelper.buildCategoryKeyboard(ctx.getCategories(), query);
-
-                String text = CommonCache.accCtxText(callbackQuery.getFrom().getId());
-                return editMarkdown(message, text, markup);
+                markup = KeyboardHelper.buildCategoryKeyboard(ctx.getCategories(), query);
             }
-
             // 车队所在地
             if (Objects.equals(query, AddressParam.QUERY_TEAM.getCode())){
                 ctx.setShowScope(true);
-                InlineKeyboardMarkup markup = KeyboardHelper.buildScopeKeyboard(query, ctx.getScope());
-                String text = CommonCache.accCtxText(callbackQuery.getFrom().getId());
-                return editMarkdown(message, text, markup);
+                markup = KeyboardHelper.buildScopeKeyboard(query, ctx.getScope());
             }
-
             // 卸货合作商 / 卸货所在地
             if (Objects.equals(query, AddressParam.UNLOADING_PARTNER.getCode())
                     || Objects.equals(query, AddressParam.UNLOADING_LOCATION.getCode())) {
-                Address address = this.addressService.selectOneCounty(countyCode);
-                ctx.setCountyName(address.getCountyName());
-                InlineKeyboardMarkup markup = KeyboardHelper.buildModelKeyboard(ctx.getModels(), query);
-                String text = CommonCache.accCtxText(callbackQuery.getFrom().getId());
-                return editMarkdown(message, text, markup);
+                markup = KeyboardHelper.buildModelKeyboard(ctx.getModels(), query);
             }
+            String text = CommonCache.accCtxText(callbackQuery.getFrom().getId());
+            return editMarkdown(message, text, markup);
         }
 
         // model
@@ -274,11 +267,14 @@ public class CallbackHandler extends AbstractHandler {
 
                         this.mapUtil.multiDriving(ctx.getScope(), location, results, (resultLists) -> {
                             if (CollUtil.isEmpty(resultLists)) {
-                                AsyncSender.async(markdown(message, "您提交的查询没有查询到任何数据...", KeyboardHelper.buildSearchKeyboard()));
+                                AsyncSender.async(markdown(message, "您提交的查询没有查询到任何数据..."));
                                 return;
                             }
 
-                            StringBuilder sb = new StringBuilder("*您提交的查询查询结果*").append("\n\n");
+                            StringBuilder sb = new StringBuilder("*您提交的查询查询结果*").append("\n\n")
+                                    .append("*您的输入：*").append(ctx.getAllAddress()).append("  ").append(ctx.getScope()).append("\n\n")
+                                    .append("*查询结果如下：*").append("\n");
+
                             int i = 1;
                             for (AcceptanceContext result : resultLists) {
                                 sb.append("`").append(i).append(". ")
@@ -289,7 +285,7 @@ public class CallbackHandler extends AbstractHandler {
                             AsyncSender.async(markdown(message, sb.toString(), KeyboardHelper.buildSearchKeyboard()));
                         });
                     } else {
-                        AsyncSender.async(markdown(message, "您提交的查询没有查询到任何数据...", KeyboardHelper.buildSearchKeyboard()));
+                        AsyncSender.async(markdown(message, "您提交的查询没有查询到任何数据..."));
                     }
                 });
                 markup = KeyboardHelper.buildSupplementCommitedKeyboard("✅查询已提交", query);
@@ -332,16 +328,21 @@ public class CallbackHandler extends AbstractHandler {
                         String location = this.mapUtil.location(address);
                         List<AcceptanceCtx> databaseCtxList = this.acceptanceCtxService.list();
 
-                        // 先过滤物品，再走地址筛选
                         List<AcceptanceContext> ctxList = new ArrayList<>(databaseCtxList.size());
-                        Set<CategoryEnum> categories = new HashSet<>(ctx.getCategories());
-                        for (AcceptanceCtx acceptanceCtx : databaseCtxList) {
-                            boolean b = acceptanceCtx.getCategories().stream().anyMatch(categories::contains);
-                            if (b) {
+                        // 先过滤物品，再走地址筛选
+                        if (CollUtil.isNotEmpty(ctx.getCategories())) {
+                            Set<CategoryEnum> categories = new HashSet<>(ctx.getCategories());
+                            for (AcceptanceCtx acceptanceCtx : databaseCtxList) {
+                                boolean b = acceptanceCtx.getCategories().stream().anyMatch(categories::contains);
+                                if (b) {
+                                    ctxList.add(acceptanceCtx.buildContext());
+                                }
+                            }
+                        } else {
+                            for (AcceptanceCtx acceptanceCtx : databaseCtxList) {
                                 ctxList.add(acceptanceCtx.buildContext());
                             }
                         }
-
                         this.mapUtil.multiDriving(ctx.getScope(), location, ctxList, results -> {
                             if (CollUtil.isEmpty(results)) {
                                 AsyncSender.async(

@@ -66,12 +66,12 @@ public class PrivateChatHandler extends AbstractHandler{
 
         if (StrUtil.equals(text, "/start")) {
             this.userService.queryUser(message.getFrom());
-            List<Long> channels = this.properties.getChannels();
-            for (Long channel : channels) {
-                boolean b = this.chatQueryHandler.checkUserInGroup(channel, message.getFrom().getId());
-                if (!b) {
-                    return ok(message, Constants.START_SUBSCRIBE_TEXT);
-                }
+            boolean b = this.chatQueryHandler.checkUserInGroup(
+                    this.properties.getChannel(),
+                    message.getFrom().getId()
+            );
+            if (!b) {
+                return ok(message, Constants.START_SUBSCRIBE_TEXT);
             }
             return reply(message, Constants.START_TEXT, KeyboardHelper.buildStartKeyboard());
         }
@@ -178,6 +178,10 @@ public class PrivateChatHandler extends AbstractHandler{
         TempEnum tempEnum = CommonCache.get(message.getFrom().getId());
         if (Objects.equals(tempEnum, TempEnum.CHECK_EXCHANGE_RATE_INPUT)) {
             String query = this.parseAndQuery(message.getText());
+            if (Objects.isNull(query)) {
+                return null;
+            }
+
             Config config = this.configService.queryConfig();
             InlineKeyboardMarkup keyboard = KeyboardHelper.keyboard(config.getQueryKeyboard());
             return markdown(message, query, keyboard);
@@ -308,6 +312,10 @@ public class PrivateChatHandler extends AbstractHandler{
 
     public String parseAndQuery(String text) {
         PaymentEnum payment = PaymentEnum.of(text);
+        if (Objects.isNull(payment)) {
+            return null;
+        }
+
         List<PriceBean> priceBeans = this.httpHelper.doQueryOkx(payment, "sell");
         priceBeans.sort(Comparator.comparing(PriceBean::getPrice));
 

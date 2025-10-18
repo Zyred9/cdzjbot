@@ -46,6 +46,9 @@ public class PublicChatHandler extends AbstractHandler {
         if (Objects.nonNull(payment)) {
             Config config = this.configService.queryConfig();
             String query = this.privateChatHandler.parseAndQuery(text);
+            if (Objects.isNull(query)) {
+                return null;
+            }
             InlineKeyboardMarkup keyboard = KeyboardHelper.keyboard(config.getQueryKeyboard());
             return markdownReply(message, query, keyboard);
         }

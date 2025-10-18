@@ -44,7 +44,7 @@ public class BotProperties {
 
     /** 地址 **/
     private String address;
-    private List<Long> channels;
+    private Long channel;
     private String apiKey;
     private String webUrl;
 

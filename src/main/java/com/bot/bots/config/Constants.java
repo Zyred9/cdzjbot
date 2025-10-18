@@ -30,8 +30,6 @@ public interface Constants {
 
     String START_SUBSCRIBE_TEXT = """
             请关注下面频道后，才能使用功能
-            资源发布 @CDZJfabu
-            骗子曝光 @CDZJpianzi
             供需频道 @CDZJgongxu
             联系客服 @CDZJkefu
             """;

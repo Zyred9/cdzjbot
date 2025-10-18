@@ -37,7 +37,7 @@ public enum PaymentEnum {
                 return value;
             }
         }
-        return ALL;
+        return null;
     }
 
 }
