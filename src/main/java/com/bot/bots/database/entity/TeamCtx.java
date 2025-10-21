@@ -3,6 +3,7 @@ package com.bot.bots.database.entity;
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.bot.bots.beans.view.ctx.AcceptanceContext;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -47,6 +48,13 @@ public class TeamCtx {
     private String marks;
     // 经纬度
     private String location;
+
+    public AcceptanceContext buildContext () {
+        return AcceptanceContext.builder()
+                .address(this.address)
+                .location(this.location)
+                .build();
+    }
 
 
     public static TeamCtx build(Map<String, String> map, User from) {

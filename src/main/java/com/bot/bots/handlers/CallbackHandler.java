@@ -15,12 +15,10 @@ import com.bot.bots.helper.KeyboardHelper;
 import com.bot.bots.helper.MapUtil;
 import com.bot.bots.helper.ThreadHelper;
 import com.bot.bots.sender.AsyncSender;
-import com.bot.bots.sender.SyncSender;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.methods.botapimethods.BotApiMethod;
-import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.CallbackQuery;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.message.Message;
@@ -47,6 +45,7 @@ public class CallbackHandler extends AbstractHandler {
     private final ExposeService exposeService;
     private final AddressService addressService;
     private final PublishService publishService;
+    private final TeamCtxService teamCtxService;
     private final PartnerCtxService partnerCtxService;
     private final AcceptanceCtxService acceptanceCtxService;
 
@@ -277,6 +276,10 @@ public class CallbackHandler extends AbstractHandler {
 
                             int i = 1;
                             for (AcceptanceContext result : resultLists) {
+                                if (i == 10) {
+                                    sb.append("*只展示前10条数据*").append("\n");
+                                    break;
+                                }
                                 sb.append("`").append(i).append(". ")
                                         .append(result.getAddress())
                                         .append("`\n");
@@ -326,27 +329,14 @@ public class CallbackHandler extends AbstractHandler {
                         Long userId = callbackQuery.getFrom().getId();
 
                         String location = this.mapUtil.location(address);
-                        List<AcceptanceCtx> databaseCtxList = this.acceptanceCtxService.list();
+                        List<AcceptanceContext> ctxList = this.queryAcceptanceCtx(query, ctx);
 
-                        List<AcceptanceContext> ctxList = new ArrayList<>(databaseCtxList.size());
-                        // 先过滤物品，再走地址筛选
-                        if (CollUtil.isNotEmpty(ctx.getCategories())) {
-                            Set<CategoryEnum> categories = new HashSet<>(ctx.getCategories());
-                            for (AcceptanceCtx acceptanceCtx : databaseCtxList) {
-                                boolean b = acceptanceCtx.getCategories().stream().anyMatch(categories::contains);
-                                if (b) {
-                                    ctxList.add(acceptanceCtx.buildContext());
-                                }
-                            }
-                        } else {
-                            for (AcceptanceCtx acceptanceCtx : databaseCtxList) {
-                                ctxList.add(acceptanceCtx.buildContext());
-                            }
-                        }
                         this.mapUtil.multiDriving(ctx.getScope(), location, ctxList, results -> {
                             if (CollUtil.isEmpty(results)) {
+
+                                String queryStr = Objects.equals(query, AddressParam.QUERY_EXCHANGE.getCode()) ? "承兑所在地" : "车队所在地";
                                 AsyncSender.async(
-                                        markdown(userId, "您提交的查询 [" + address + "] 范围(" + ctx.getScope() + ") 附近暂无承兑所在地，放大区间范围试试！")
+                                        markdown(userId, "您提交的查询 [" + address + "] 范围(" + ctx.getScope() + ") 附近暂无" + queryStr + "，放大区间范围试试！")
                                 );
                                 return;
                             }
@@ -356,6 +346,10 @@ public class CallbackHandler extends AbstractHandler {
 
                             int i = 1;
                             for (AcceptanceContext result : results) {
+                                if (i == 10) {
+                                    sb.append("*只展示前10条数据*").append("\n");
+                                    break;
+                                }
                                 Integer distance = result.getDistance() / 1000;
                                 sb.append(i).append(" ： ")
                                         .append(distance)
@@ -609,6 +603,35 @@ public class CallbackHandler extends AbstractHandler {
 
 
         return null;
+    }
+
+    private List<AcceptanceContext> queryAcceptanceCtx(int query, AcceptanceContext ctx) {
+
+        List<AcceptanceContext> ctxList = new ArrayList<>();
+        if (Objects.equals(query, AddressParam.QUERY_EXCHANGE.getCode())) {
+            List<AcceptanceCtx> databaseCtxList = this.acceptanceCtxService.list();
+            if (CollUtil.isEmpty(ctx.getCategories())) {
+                for (AcceptanceCtx acceptanceCtx : databaseCtxList) {
+                    ctxList.add(acceptanceCtx.buildContext());
+                }
+                return ctxList;
+            }
+            Set<CategoryEnum> categorieSet = new HashSet<>(ctx.getCategories());
+            for (AcceptanceCtx acceptanceCtx : databaseCtxList) {
+                if (acceptanceCtx.getCategories().stream().anyMatch(categorieSet::contains)) {
+                    ctxList.add(acceptanceCtx.buildContext());
+                }
+            }
+            return ctxList;
+        }
+
+        if (Objects.equals(query, AddressParam.QUERY_TEAM.getCode())) {
+            List<TeamCtx> teamCtxList = this.teamCtxService.list();
+            for (TeamCtx teamCtx : teamCtxList) {
+                ctxList.add(teamCtx.buildContext());
+            }
+        }
+        return ctxList;
     }
 
     private BotApiMethod<?> processorGroupCallback(CallbackQuery callbackQuery, List<String> commands, Message message) {
