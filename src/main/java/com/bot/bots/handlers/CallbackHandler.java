@@ -238,8 +238,13 @@ public class CallbackHandler extends AbstractHandler {
                 String location = this.mapUtil.location(build.getAddress());
                 build.setLocation(location);
                 this.partnerCtxService.save(build);
+                long count = this.partnerCtxService.count();
                 markup = KeyboardHelper.buildSupplementCommitedKeyboard("✅报备已提交", query);
                 AsyncSender.async(ok(callbackQuery.getFrom().getId(), Constants.UNLOADING_PARTNER_SUCCESS_TEXT));
+
+                AsyncSender.async(ok(this.properties.getBackgroundId(),
+                        StrUtil.format(Constants.U_REPORT_COMMITED_BACK_TEXT, count)));
+
             } else if (StrUtil.equals(supplement, "to_query")) {
 
                 String a = ctx.getSupplement();

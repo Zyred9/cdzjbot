@@ -173,9 +173,17 @@ public abstract class AbstractHandler {
                 .build();
     }
 
-    protected SendPhoto photo(Message message, String fileId, String caption, InlineKeyboardMarkup markup) {
+    protected SendPhoto photo(Long userId, String fileId, String caption) {
+        return photo(userId, fileId, caption, null);
+    }
+
+    protected SendPhoto photo(Message message, String fileId, String caption) {
+        return photo(message.getChatId(), fileId, caption, null);
+    }
+
+    protected SendPhoto photo(Long userId, String fileId, String caption, InlineKeyboardMarkup markup) {
         return SendPhoto.builder()
-                .chatId(message.getChatId())
+                .chatId(userId)
                 .photo(new InputFile(fileId))
                 .parseMode(ParseMode.MARKDOWN)
                 .replyMarkup(markup)
@@ -183,9 +191,17 @@ public abstract class AbstractHandler {
                 .build();
     }
 
-    protected SendVideo video(Message message, String fileId, String caption, InlineKeyboardMarkup markup) {
+    protected SendVideo video(Long userId, String fileId, String caption) {
+        return video(userId, fileId, caption, null);
+    }
+
+    protected SendVideo video(Message message, String fileId, String caption) {
+        return video(message.getChatId(), fileId, caption, null);
+    }
+
+    protected SendVideo video(Long userId, String fileId, String caption, InlineKeyboardMarkup markup) {
         return SendVideo.builder()
-                .chatId(message.getChatId())
+                .chatId(userId)
                 .video(new InputFile(fileId))
                 .parseMode(ParseMode.MARKDOWN)
                 .replyMarkup(markup)

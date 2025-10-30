@@ -3,7 +3,6 @@ package com.bot.bots.handlers;
 import cn.hutool.core.util.StrUtil;
 import com.bot.bots.beans.cache.CommonCache;
 import com.bot.bots.beans.caffeine.CountdownCaffeine;
-import com.bot.bots.beans.chat.ChatQueryHandler;
 import com.bot.bots.beans.view.Scheduled;
 import com.bot.bots.beans.view.ctx.AcceptanceContext;
 import com.bot.bots.beans.view.trx.PriceBean;
@@ -22,7 +21,6 @@ import org.telegram.telegrambots.meta.api.objects.message.Message;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -50,7 +48,7 @@ public class PrivateChatHandler extends AbstractHandler{
     private final AddressService addressService;
     private final TeamCtxService teamCtxService;
     private final RechargeService rechargeService;
-    private final ChatQueryHandler chatQueryHandler;
+//    private final ChatQueryHandler chatQueryHandler;
 
     @Override
     public boolean support(Update update) {
@@ -66,13 +64,13 @@ public class PrivateChatHandler extends AbstractHandler{
 
         if (StrUtil.equals(text, "/start")) {
             this.userService.queryUser(message.getFrom());
-            boolean b = this.chatQueryHandler.checkUserInGroup(
-                    this.properties.getChannel(),
-                    message.getFrom().getId()
-            );
-            if (!b) {
-                return ok(message, Constants.START_SUBSCRIBE_TEXT);
-            }
+//            boolean b = this.chatQueryHandler.checkUserInGroup(
+//                    this.properties.getChannel(),
+//                    message.getFrom().getId()
+//            );
+//            if (!b) {
+//                return ok(message, Constants.START_SUBSCRIBE_TEXT);
+//            }
             return reply(message, Constants.START_TEXT, KeyboardHelper.buildStartKeyboard());
         }
 
@@ -271,7 +269,10 @@ public class PrivateChatHandler extends AbstractHandler{
             String location = this.mapUtil.location(tc.getAddress());
             tc.setLocation(location);
 
+            long count = this.teamCtxService.count() + 1;
             this.teamCtxService.save(tc);
+            AsyncSender.async(ok(this.properties.getBackgroundId(),
+                    StrUtil.format(Constants.CAT_REPORT_COMMITED_BACK_TEXT, count)));
             return markdownReply(message, Constants.CAR_TEAM_REPORT_SUCCESS_TEXT);
         }
 

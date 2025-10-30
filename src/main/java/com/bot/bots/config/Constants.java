@@ -46,10 +46,16 @@ public interface Constants {
             """;
 
     String START_TEXT = """
-            欢迎使用“承兑之家”机器人,本机器人致力于各大【承兑/车队】能快速匹配到彼此，节约双方时间
+            欢迎使用承兑之家机器人
             
-            【承兑/车队报备】 功能：U商/核销 提交按钮，按照自身所需真实填写
-            【承兑/车队所在地】功能：车队/承兑可通过地区查询周边有无所需商家，然后进行预约
+            记住 @CDZJgongxu（承兑之家供需）信息免费发布！
+            ▪️请根据提示，选择您选需要的业务类型
+            ▪️可在线查询承兑所在地
+            ▪️可在线查询车队所在地
+            ▪️中介也可以联系客服进行合作洽谈哦！
+            查U汇率/查承兑所在地/所有功能免费使用
+            
+            ✅添加机器人到群里即可在群里多人使用！
             """;
 
     String P_C_PUBLISH_TEXT = """
@@ -131,6 +137,14 @@ public interface Constants {
 
     String REPORT_COMMITED_BACK_TEXT = """
             承兑有人提交了报备，第{}条
+            """;
+
+    String CAT_REPORT_COMMITED_BACK_TEXT = """
+            车队有人提交了报备，第{}条
+            """;
+
+    String U_REPORT_COMMITED_BACK_TEXT = """
+            u商有人提交了报备，第{}条
             """;
 
     String PROVINCE_LOCATION_TEXT = """
