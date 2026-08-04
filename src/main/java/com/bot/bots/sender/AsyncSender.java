@@ -92,7 +92,16 @@ public class AsyncSender {
 
     private void processorSend(PartialBotApiMethod<?> take) throws TelegramApiException {
         if (take instanceof SendMessage message) {
-            telegramClient.execute(message);
+            try {
+                telegramClient.execute(message);
+            } catch (TelegramApiException e) {
+                if (e.getMessage() != null && e.getMessage().contains("message to be replied not found")) {
+                    message.setReplyToMessageId(null);
+                    telegramClient.execute(message);
+                    return;
+                }
+                throw e;
+            }
             return;
         }
         if (take instanceof DeleteMessage delete) {

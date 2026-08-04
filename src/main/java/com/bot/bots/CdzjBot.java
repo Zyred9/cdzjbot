@@ -14,6 +14,7 @@ import org.telegram.telegrambots.longpolling.starter.AfterBotRegistration;
 import org.telegram.telegrambots.longpolling.starter.SpringLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.GetMe;
 import org.telegram.telegrambots.meta.api.methods.botapimethods.BotApiMethod;
+import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.User;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
@@ -60,9 +61,32 @@ public class CdzjBot implements SpringLongPollingBot, MultiThreadUpdateConsumer 
                 }
             }
         } catch (TelegramApiException e) {
+            if (isNotEnoughRights(e)) {
+                log.warn("【权限不足】消息内容：{} \n 异常消息：{}",
+                        JSONUtil.toJsonStr(message), e.getMessage());
+                return;
+            }
+            if (isMessageToBeRepliedNotFound(e) && message instanceof SendMessage sendMsg) {
+                sendMsg.setReplyToMessageId(null);
+                try {
+                    this.telegramClient.execute(sendMsg);
+                    return;
+                } catch (TelegramApiException ex) {
+                    log.error("【同步消息异常-重试失败】消息内容：{} \n 异常消息：{}",
+                            JSONUtil.toJsonStr(sendMsg), ex.getMessage(), ex);
+                }
+            }
             log.error("【同步消息异常】消息内容：{} \n 异常消息：{}",
                     JSONUtil.toJsonStr(message), e.getMessage(), e);
         }
+    }
+
+    private boolean isNotEnoughRights(TelegramApiException e) {
+        return Objects.nonNull(e.getMessage()) && e.getMessage().contains("not enough rights");
+    }
+
+    private boolean isMessageToBeRepliedNotFound(TelegramApiException e) {
+        return Objects.nonNull(e.getMessage()) && e.getMessage().contains("message to be replied not found");
     }
 
 

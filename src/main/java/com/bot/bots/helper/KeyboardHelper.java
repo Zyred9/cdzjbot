@@ -408,13 +408,13 @@ public class KeyboardHelper {
                                 KeyboardButton.builder().text("\uD83D\uDCB9U商报备").build())
                         ),
                         new KeyboardRow(List.of(
-                                KeyboardButton.builder().text("\uD83D\uDC81\uD83C\uDFFC\u200d♀️承兑所在地").build(),
-                                KeyboardButton.builder().text("\uD83D\uDE95车队所在地").build(),
-                                KeyboardButton.builder().text("\uD83C\uDE2F️U商所在地").build())
+                                KeyboardButton.builder().text("\uD83D\uDC81\uD83C\uDFFC\u200d♀️承兑驻地").build(),
+                                KeyboardButton.builder().text("\uD83D\uDE95车队驻地").build(),
+                                KeyboardButton.builder().text("\uD83C\uDE2F️U商驻地").build())
                         ),
                         new KeyboardRow(List.of(
                                 KeyboardButton.builder().text("\uD83D\uDFE2供需发布").build(),
-                                KeyboardButton.builder().text("\uD83D\uDD0D查汇率").build(),
+                                KeyboardButton.builder().text("\uD83D\uDD0D汇率查询").build(),
                                 KeyboardButton.builder().text("\uD83D\uDD0E骗子曝光").build())
                         ),
                         new KeyboardRow(List.of(

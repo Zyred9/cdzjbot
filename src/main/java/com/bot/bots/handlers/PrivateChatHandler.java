@@ -134,13 +134,13 @@ public class PrivateChatHandler extends AbstractHandler{
         }
 
 
-        if (StrUtil.equals(text, "\uD83D\uDC81\uD83C\uDFFC\u200d♀️承兑所在地")) {
+        if (StrUtil.equals(text, "\uD83D\uDC81\uD83C\uDFFC\u200d♀️承兑驻地")) {
             List<Address> address = this.addressService.selectProvince();
             InlineKeyboardMarkup markup = KeyboardHelper.buildProvinceKeyboard(address, AddressParam.QUERY_EXCHANGE.getCode());
             return markdownReply(message, Constants.PROVINCE_LOCATION_TEXT, markup);
         }
 
-        if (StrUtil.equals(text, "\uD83D\uDE95车队所在地")) {
+        if (StrUtil.equals(text, "\uD83D\uDE95车队驻地")) {
             List<Address> address = this.addressService.selectProvince();
             InlineKeyboardMarkup markup = KeyboardHelper.buildProvinceKeyboard(address, AddressParam.QUERY_TEAM.getCode());
             return markdownReply(message, Constants.CAT_TEAM_ADDRESS_TEXT, markup);
@@ -152,7 +152,7 @@ public class PrivateChatHandler extends AbstractHandler{
             return markdownReply(message, Constants.UNLOADING_PARTNER_TEXT, markup);
         }
 
-        if (StrUtil.equals(text, "\uD83C\uDE2F️U商所在地")) {
+        if (StrUtil.equals(text, "\uD83C\uDE2F️U商驻地")) {
             List<Address> address = this.addressService.selectProvince();
             InlineKeyboardMarkup markup = KeyboardHelper.buildProvinceKeyboard(address, AddressParam.UNLOADING_LOCATION.getCode());
             return markdownReply(message, Constants.UNLOADING_LOCATION_TEXT, markup);
@@ -161,6 +161,17 @@ public class PrivateChatHandler extends AbstractHandler{
         if (StrUtil.equals(text, "\uD83D\uDD0D查汇率")) {
             CommonCache.put(message.getFrom().getId(), TempEnum.CHECK_EXCHANGE_RATE_INPUT);
             return markdownReply(message, Constants.CHECK_EXCHANGE_RATE_TEXT);
+        }
+
+        PaymentEnum payment = PaymentEnum.of(text);
+        if (Objects.nonNull(payment)) {
+            Config config = this.configService.queryConfig();
+            String query = this.parseAndQuery(text);
+            if (Objects.isNull(query)) {
+                return null;
+            }
+            InlineKeyboardMarkup keyboard = KeyboardHelper.keyboard(config.getQueryKeyboard());
+            return markdownReply(message, query, keyboard);
         }
 
         // 用户有缓存
