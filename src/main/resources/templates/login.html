@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title>登录 - 管理后台</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system,BlinkMacSystemFont,Segoe UI,Roboto,PingFang SC,Microsoft YaHei; background: #f0f2f5; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+        .login-box { background: #fff; padding: 40px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); width: 380px; }
+        .login-box h2 { text-align: center; margin-bottom: 28px; color: #1a1a1a; font-size: 22px; }
+        .form-item { margin-bottom: 18px; }
+        .form-item label { display: block; margin-bottom: 6px; color: #555; font-size: 14px; }
+        .form-item input { width: 100%; padding: 10px 12px; border: 1px solid #dcdfe6; border-radius: 6px; font-size: 14px; outline: none; transition: border-color 0.2s; }
+        .form-item input:focus { border-color: #1677ff; }
+        .btn-login { width: 100%; padding: 11px; background: #1677ff; color: #fff; border: none; border-radius: 6px; font-size: 15px; cursor: pointer; }
+        .btn-login:hover { background: #0f66dd; }
+        .error-msg { background: #fff2f0; border: 1px solid #ffccc7; color: #ff4d4f; padding: 10px 14px; border-radius: 6px; margin-bottom: 18px; font-size: 13px; }
+    </style>
+</head>
+<body>
+<div class="login-box">
+    <h2>管理后台登录</h2>
+    <div th:if="${error}" class="error-msg" th:text="${error}"></div>
+    <form method="post" action="/login">
+        <div class="form-item">
+            <label>用户ID（Telegram）</label>
+            <input type="text" name="userId" placeholder="请输入您的 Telegram 用户ID" required autofocus/>
+        </div>
+        <div class="form-item">
+            <label>登录密码</label>
+            <input type="password" name="password" placeholder="请输入登录密码" required/>
+        </div>
+        <button type="submit" class="btn-login">登 录</button>
+    </form>
+</div>
+</body>
+</html>

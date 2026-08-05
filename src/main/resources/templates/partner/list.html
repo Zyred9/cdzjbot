@@ -24,7 +24,10 @@
     <button class="btn" onclick="loadData(1)">查询</button>
     <button class="btn" onclick="refreshPage()">刷新</button>
     <button class="btn" th:onclick="|location.href='@{/pc/team(userId=${userId})}'|">去车队报备</button>
+    <button class="btn" th:onclick="|location.href='@{/pc/privatechat(userId=${userId})}'|">去私信列表</button>
     <button class="btn" th:onclick="|location.href='@{/pc/acceptance(userId=${userId})}'|">去承兑报备</button>
+    <button class="btn" th:onclick="|location.href='@{/pc/broadcast(userId=${userId})}'|">去群发消息</button>
+    <a class="btn" href="/logout" style="background:#ff4d4f;text-decoration:none;display:inline-block">退出登录</a>
 </div>
 
 <table>
@@ -47,11 +50,27 @@
 
 <div class="pager">
     <button class="btn" onclick="prev()">上一页</button>
+    <select class="input" onchange="changePageSize(this.value)" style="padding:6px 8px">
+        <option value="10">10条/页</option>
+        <option value="20">20条/页</option>
+        <option value="50">50条/页</option>
+        <option value="100">100条/页</option>
+    </select>
     <span id="pageInfo"></span>
     <button class="btn" onclick="next()">下一页</button>
 </div>
 
 <script>
+    const _fetch = window.fetch;
+    window.fetch = async function(...args) {
+        const resp = await _fetch.apply(this, args);
+        if (resp.status === 401) {
+            window.location.href = '/login';
+            throw new Error('Unauthorized');
+        }
+        return resp;
+    };
+
     let pageNo = 1, pageSize = 10, total = 0, pages = 0;
 
     function q(v){ const el = document.getElementById(v); return el ? el.value.trim() : ''; }
@@ -102,6 +121,7 @@
 
     function prev(){ if(pageNo > 1) loadData(pageNo - 1); }
     function next(){ if(pageNo < pages) loadData(pageNo + 1); }
+    function changePageSize(ps){ pageSize = parseInt(ps); loadData(1); }
 
     // ======= 可视化编辑弹窗逻辑 =======
     let editCache = null;

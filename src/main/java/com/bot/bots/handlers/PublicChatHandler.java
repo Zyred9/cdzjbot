@@ -1,9 +1,11 @@
 package com.bot.bots.handlers;
 
+import cn.hutool.core.util.StrUtil;
 import com.bot.bots.config.BotProperties;
 import com.bot.bots.database.entity.Config;
 import com.bot.bots.database.enums.PaymentEnum;
 import com.bot.bots.database.service.ConfigService;
+import com.bot.bots.helper.JexlCalculator;
 import com.bot.bots.helper.KeyboardHelper;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.methods.botapimethods.BotApiMethod;
@@ -13,6 +15,7 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMa
 
 import javax.annotation.Resource;
 import java.util.Objects;
+import java.util.regex.Pattern;
 
 /**
  * <p>
@@ -24,6 +27,8 @@ import java.util.Objects;
  */
 @Component
 public class PublicChatHandler extends AbstractHandler {
+
+    private static final Pattern MATH_PATTERN = Pattern.compile("^[\\d\\s+\\-*/().（）×÷]+$");
 
     @Resource private BotProperties properties;
     @Resource private ConfigService configService;
@@ -53,7 +58,39 @@ public class PublicChatHandler extends AbstractHandler {
             return markdownReply(message, query, keyboard);
         }
 
+        if (this.isMathExpression(text)) {
+            return this.handleMath(message, text);
+        }
+
         return null;
+    }
+
+    private boolean isMathExpression(String text) {
+        if (StrUtil.isBlank(text) || text.length() > 200) {
+            return false;
+        }
+        if (!MATH_PATTERN.matcher(text).matches()) {
+            return false;
+        }
+        return text.matches(".*\\d.*") && text.matches(".*[+\\-*/].*");
+    }
+
+    private BotApiMethod<?> handleMath(Message message, String expression) {
+        try {
+            String normalized = normalizeExpression(expression);
+            String result = JexlCalculator.calculateStr(normalized);
+            return markdownReply(message, "`" + expression + "=" + result + "`");
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private String normalizeExpression(String expression) {
+        return expression
+                .replace('（', '(')
+                .replace('）', ')')
+                .replace('×', '*')
+                .replace('÷', '/');
     }
 
 }

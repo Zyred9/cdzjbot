@@ -33,6 +33,9 @@ public class User {
     /** usdt 余额 **/
     private BigDecimal balance;
 
+    /** 后台管理登录密码（MD5） **/
+    private String password;
+
     public static User buildDefault(Long userId, String userName, String firstName) {
         return new User()
                 .setUserId(userId)

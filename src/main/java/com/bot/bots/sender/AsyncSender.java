@@ -1,11 +1,8 @@
 package com.bot.bots.sender;
 
-import cn.hutool.core.thread.GlobalThreadPool;
-import cn.hutool.core.util.RandomUtil;
 import cn.hutool.json.JSONUtil;
-import com.bot.bots.helper.ThreadHelper;
-import lombok.extern.slf4j.Slf4j;
 import com.bot.bots.config.BotProperties;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.methods.AnswerCallbackQuery;
 import org.telegram.telegrambots.meta.api.methods.botapimethods.PartialBotApiMethod;
@@ -39,55 +36,38 @@ public class AsyncSender {
     @Resource private TelegramClient telegramClient;
 
     private static final LinkedBlockingQueue<PartialBotApiMethod<?>> QUEUE = new LinkedBlockingQueue<>();
-    private static final LinkedBlockingQueue<PartialBotApiMethod<?>> DELAY_QUEUE = new LinkedBlockingQueue<>();
+    private static final long MIN_INTERVAL_MS = 50L;
 
-    public static void async (PartialBotApiMethod<?> message) {
+    public static void async(PartialBotApiMethod<?> message) {
         if (Objects.isNull(message)) {
             return;
         }
-        if (QUEUE.size() >= 20) {
-            DELAY_QUEUE.add(message);
-            log.info("[主队列消息超过20条] 加入到子队列，子队列大小：{}， 消息内容：{}", DELAY_QUEUE.size(), JSONUtil.toJsonStr(message));
-        } else {
-            QUEUE.add(message);
-        }
+        QUEUE.add(message);
     }
 
     public AsyncSender() {
-        this.run();
-        this.delayRun();
-    }
-
-    private void delayRun() {
         new Thread(() -> {
             while (!Thread.interrupted()) {
                 PartialBotApiMethod<?> take = null;
                 try {
-                    ThreadHelper.sleepMs(RandomUtil.randomInt(200, 500));
-                    take = DELAY_QUEUE.take();
-                    this.processorSend(take);
-                } catch (InterruptedException | TelegramApiException e) {
+                    long start = System.currentTimeMillis();
+                    take = QUEUE.take();
+                    if (properties.isLogs()) {
+                        log.info("【异步】发送：{}", JSONUtil.toJsonStr(take));
+                    }
+                    processorSend(take);
+                    long elapsed = System.currentTimeMillis() - start;
+                    if (elapsed < MIN_INTERVAL_MS) {
+                        Thread.sleep(MIN_INTERVAL_MS - elapsed);
+                    }
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    break;
+                } catch (TelegramApiException e) {
                     log.error("【异步发送异常】消息内容：{}，错误信息：{}", JSONUtil.toJsonStr(take), e.getMessage(), e);
                 }
             }
         }).start();
-    }
-
-    private void run() {
-        ThreadHelper.execute(() -> {
-            while (!Thread.interrupted()) {
-                PartialBotApiMethod<?> take = null;
-                try {
-                    take = QUEUE.take();
-                    if (this.properties.isLogs()) {
-                        log.info("【异步】发送：{}", JSONUtil.toJsonStr(take));
-                    }
-                    this.processorSend(take);
-                } catch (InterruptedException | TelegramApiException e) {
-                    log.error("【异步发送异常】消息内容：{}，错误信息：{}", JSONUtil.toJsonStr(take), e.getMessage(), e);
-                }
-            }
-        });
     }
 
     private void processorSend(PartialBotApiMethod<?> take) throws TelegramApiException {

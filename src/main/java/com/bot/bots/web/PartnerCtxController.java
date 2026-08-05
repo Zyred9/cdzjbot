@@ -3,15 +3,14 @@ package com.bot.bots.web;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.bot.bots.database.entity.Config;
 import com.bot.bots.database.entity.PartnerCtx;
-import com.bot.bots.database.service.ConfigService;
 import com.bot.bots.database.service.PartnerCtxService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
+import javax.servlet.http.HttpSession;
 import java.util.Objects;
 
 /**
@@ -32,17 +31,13 @@ import java.util.Objects;
 @RequiredArgsConstructor
 public class PartnerCtxController {
 
-    private final ConfigService configService;
     private final PartnerCtxService partnerCtxService;
 
     @GetMapping("/pc/partner")
-    public String pagePartner(Model model, @RequestParam(value = "userId", required = false, defaultValue = "0") Long userId) {
-        Config config = this.configService.queryConfig();
-        if (config.hasEdit(userId)) {
-            model.addAttribute("userId", userId);
-            return "partner/list";
-        }
-        return "error/error";
+    public String pagePartner(Model model, HttpSession session) {
+        Long userId = LoginController.getLoginUserId(session);
+        model.addAttribute("userId", userId);
+        return "partner/list";
     }
 
     /**

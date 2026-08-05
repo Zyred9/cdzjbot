@@ -60,6 +60,10 @@ public class AcceptanceCtx {
     private Boolean follow;
     // 经纬度
     private String location;
+    // 客户类型
+    private Integer customerType;
+    // 标签ID
+    private Long tagId;
 
     @TableField(exist = false)
     private Integer distance;

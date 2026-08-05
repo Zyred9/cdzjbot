@@ -1,24 +1,52 @@
 package com.bot.bots.handlers;
 
+import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.StrUtil;
+import cn.hutool.crypto.digest.DigestUtil;
+import com.alibaba.excel.EasyExcel;
 import com.bot.bots.config.BotProperties;
+import com.bot.bots.database.entity.AcceptanceCtx;
+import com.bot.bots.database.entity.BroadcastCategory;
 import com.bot.bots.database.entity.Config;
+import com.bot.bots.database.entity.Tag;
 import com.bot.bots.database.entity.User;
+import com.bot.bots.database.service.AcceptanceCtxService;
+import com.bot.bots.database.service.BroadcastCategoryService;
 import com.bot.bots.database.service.ConfigService;
+import com.bot.bots.database.service.TagService;
 import com.bot.bots.database.service.UserService;
 import com.bot.bots.helper.DecimalHelper;
 import com.bot.bots.helper.KeyboardHelper;
 import com.bot.bots.sender.AsyncSender;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+import org.telegram.telegrambots.meta.api.methods.GetFile;
 import org.telegram.telegrambots.meta.api.methods.botapimethods.BotApiMethod;
+import org.telegram.telegrambots.meta.api.objects.Document;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.message.Message;
+import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
+import org.telegram.telegrambots.meta.generics.TelegramClient;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.math.BigDecimal;
+import java.net.URL;
+import java.net.URLConnection;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * <p>
@@ -28,6 +56,7 @@ import java.util.Set;
  * @author admin
  * @since v 0.0.1
  */
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class BackgroundHandler extends AbstractHandler {
@@ -35,12 +64,19 @@ public class BackgroundHandler extends AbstractHandler {
     private final UserService userService;
     private final BotProperties properties;
     private final ConfigService configService;
+    private final BroadcastCategoryService broadcastCategoryService;
+    private final TelegramClient telegramClient;
+    private final TagService tagService;
+    private final AcceptanceCtxService acceptanceCtxService;
+
+    private static final Pattern RATE_PATTERN = Pattern.compile("^(\\d+(?:\\.\\d+)?)");
 
 
     @Override
     public boolean support(Update update) {
         return update.hasMessage()
-                && (update.getMessage().hasText() || update.getMessage().hasPhoto() || update.getMessage().hasVideo())
+                && (update.getMessage().hasText() || update.getMessage().hasPhoto()
+                    || update.getMessage().hasVideo() || update.getMessage().hasDocument())
                 && (update.getMessage().getChat().isGroupChat() || update.getMessage().getChat().isSuperGroupChat())
                 && this.properties.fromBackground(update.getMessage().getChatId());
     }
@@ -48,6 +84,12 @@ public class BackgroundHandler extends AbstractHandler {
     @Override
     protected BotApiMethod<?> execute(Update update) {
         Message message = update.getMessage();
+
+        if (message.hasDocument()) {
+            if (this.isExcelFile(message.getDocument())) {
+                return this.handleExcelImport(message);
+            }
+        }
 
         if (message.hasText()) {
             String text = message.getText();
@@ -127,6 +169,19 @@ public class BackgroundHandler extends AbstractHandler {
                 return reply(message);
             }
 
+            // 设置密码#用户id#新密码
+            if (StrUtil.equals(commands.get(0), "设置密码")) {
+                long targetUserId = Long.parseLong(commands.get(1));
+                String rawPassword = commands.get(2);
+                User targetUser = this.userService.getById(targetUserId);
+                if (Objects.isNull(targetUser)) {
+                    return reply(message, "用户 " + targetUserId + " 不存在");
+                }
+                targetUser.setPassword(DigestUtil.md5Hex(rawPassword));
+                this.userService.updateById(targetUser);
+                return reply(message);
+            }
+
             // 余额#用户id#+100
             // 余额#用户id#-100
             if (StrUtil.equals(commands.get(0), "余额")) {
@@ -144,17 +199,21 @@ public class BackgroundHandler extends AbstractHandler {
 
             // 页面地址
             if (StrUtil.equals(commands.get(0), "页面地址")) {
-                String url = this.properties.getWebUrl() + message.getFrom().getId();
-                return ok(message, url);
+                return ok(message, this.properties.getWebUrl());
             }
 
             // 广播#内容
             if (StrUtil.equals(commands.get(0), "广播")) {
                 return this.processorBroadcast(message, commands);
             }
+
+            // 群发#分类名#内容
+            if (StrUtil.equals(commands.get(0), "群发") && commands.size() >= 3) {
+                return this.processorCategoryBroadcast(message, commands);
+            }
         }
 
-        // 广播#内容
+        // 广播#内容 / 群发#分类名#内容
         if (message.hasPhoto() || message.hasVideo()) {
             String caption = message.getCaption();
             if (StrUtil.isBlank(caption)) {
@@ -163,6 +222,9 @@ public class BackgroundHandler extends AbstractHandler {
             List<String> commands = StrUtil.split(caption, "#");
             if (StrUtil.equals(commands.get(0), "广播")) {
                 return this.processorBroadcast(message, commands);
+            }
+            if (StrUtil.equals(commands.get(0), "群发") && commands.size() >= 3) {
+                return this.processorCategoryBroadcast(message, commands);
             }
         }
 
@@ -198,5 +260,188 @@ public class BackgroundHandler extends AbstractHandler {
         }
 
         return null;
+    }
+
+    private BotApiMethod<?> processorCategoryBroadcast(Message message, List<String> commands) {
+        String categoryName = commands.get(1);
+        String content = commands.size() > 2 ? String.join("#", commands.subList(2, commands.size())) : null;
+
+        List<BroadcastCategory> categories = this.broadcastCategoryService.lambdaQuery()
+                .eq(BroadcastCategory::getName, categoryName)
+                .list();
+        if (CollUtil.isEmpty(categories)) {
+            return reply(message, "未找到分类：" + categoryName);
+        }
+
+        BroadcastCategory category = categories.get(0);
+        List<Long> chatIds = this.broadcastCategoryService.getChatIdsByCategoryId(category.getId());
+        if (CollUtil.isEmpty(chatIds)) {
+            return reply(message, "分类「" + categoryName + "」下没有群组");
+        }
+
+        if (message.hasPhoto()) {
+            String fileId = message.getPhoto().get(0).getFileId();
+            for (Long chatId : chatIds) {
+                AsyncSender.async(photo(chatId, fileId, content));
+            }
+        } else if (message.hasVideo()) {
+            String fileId = message.getVideo().getFileId();
+            for (Long chatId : chatIds) {
+                AsyncSender.async(video(chatId, fileId, content));
+            }
+        } else {
+            for (Long chatId : chatIds) {
+                AsyncSender.async(markdown(chatId, content));
+            }
+        }
+
+        return reply(message, "已向分类「" + categoryName + "」下的 " + chatIds.size() + " 个群发送");
+    }
+
+    private boolean isExcelFile(Document document) {
+        String fileName = document.getFileName();
+        if (StrUtil.isBlank(fileName)) {
+            return false;
+        }
+        String lowerName = fileName.toLowerCase();
+        return lowerName.endsWith(".xlsx") || lowerName.endsWith(".xls");
+    }
+
+    private BotApiMethod<?> handleExcelImport(Message message) {
+        try {
+            GetFile getFile = GetFile.builder().fileId(message.getDocument().getFileId()).build();
+            org.telegram.telegrambots.meta.api.objects.File tgFile = this.telegramClient.execute(getFile);
+            String fileUrl = "https://api.telegram.org/file/bot" + this.properties.getToken() + "/" + tgFile.getFilePath();
+            byte[] fileBytes = this.downloadFile(fileUrl);
+
+            List<Map<Integer, String>> rows = EasyExcel.read(new ByteArrayInputStream(fileBytes))
+                    .sheet()
+                    .headRowNumber(1)
+                    .doReadSync();
+
+            if (CollUtil.isEmpty(rows)) {
+                return reply(message, "Excel 文件无数据");
+            }
+
+            Map<String, Long> tagCache = new HashMap<>();
+            List<AcceptanceCtx> records = new ArrayList<>();
+
+            for (Map<Integer, String> row : rows) {
+                String customerTag = this.getCellValue(row, 4);
+                Long tagId = this.getOrCreateTag(tagCache, customerTag);
+
+                AcceptanceCtx ctx = new AcceptanceCtx()
+                        .setId(this.generateId())
+                        .setUserId(this.generateId())
+                        .setUsername(this.getCellValue(row, 1))
+                        .setNickname(this.getCellValue(row, 2))
+                        .setCustomerType(this.parseCustomerType(this.getCellValue(row, 3)))
+                        .setTagId(tagId)
+                        .setAddress(this.mergeAddress(
+                                this.getCellValue(row, 5),
+                                this.getCellValue(row, 6),
+                                this.getCellValue(row, 7),
+                                this.getCellValue(row, 8)))
+                        .setIntervalInput(this.getCellValue(row, 9))
+                        .setRate(this.parseRate(this.getCellValue(row, 10)));
+                records.add(ctx);
+            }
+
+            this.acceptanceCtxService.saveBatch(records);
+
+            log.info("[Excel导入] 导入完成，共 {} 条记录", records.size());
+            return reply(message, "导入完成，共 " + records.size() + " 条记录");
+
+        } catch (TelegramApiException e) {
+            log.error("[Excel导入] 文件下载失败", e);
+            return reply(message, "文件下载失败：" + e.getMessage());
+        } catch (Exception e) {
+            log.error("[Excel导入] 导入异常", e);
+            return reply(message, "导入失败：" + e.getMessage());
+        }
+    }
+
+    private String getCellValue(Map<Integer, String> row, int index) {
+        String value = row.get(index);
+        return StrUtil.isBlank(value) ? null : value.trim();
+    }
+
+    private Long generateId() {
+        return -(1_000_000_000L + ThreadLocalRandom.current().nextLong(9_000_000_000L));
+    }
+
+    private Long getOrCreateTag(Map<String, Long> tagCache, String tagName) {
+        if (StrUtil.isBlank(tagName)) {
+            return null;
+        }
+        if (tagCache.containsKey(tagName)) {
+            return tagCache.get(tagName);
+        }
+        Tag existing = this.tagService.lambdaQuery().eq(Tag::getName, tagName).one();
+        if (Objects.nonNull(existing)) {
+            tagCache.put(tagName, existing.getId());
+            return existing.getId();
+        }
+        Tag newTag = new Tag()
+                .setName(tagName)
+                .setColor("black")
+                .setCreateTime(LocalDateTime.now());
+        this.tagService.save(newTag);
+        tagCache.put(tagName, newTag.getId());
+        return newTag.getId();
+    }
+
+    private Integer parseCustomerType(String type) {
+        if (StrUtil.isBlank(type)) {
+            return null;
+        }
+        if (type.contains("已合作") || type.contains("合作")) {
+            return 1;
+        }
+        if (type.contains("未合作")) {
+            return 2;
+        }
+        return null;
+    }
+
+    private BigDecimal parseRate(String rateStr) {
+        if (StrUtil.isBlank(rateStr)) {
+            return null;
+        }
+        Matcher m = RATE_PATTERN.matcher(rateStr.trim());
+        if (m.find()) {
+            return new BigDecimal(m.group(1));
+        }
+        return null;
+    }
+
+    private String mergeAddress(String province, String city, String district, String detail) {
+        StringBuilder sb = new StringBuilder();
+        if (StrUtil.isNotBlank(province)) {
+            sb.append(province);
+        }
+        if (StrUtil.isNotBlank(city)) {
+            sb.append(city);
+        }
+        if (StrUtil.isNotBlank(district)) {
+            sb.append(district);
+        }
+        if (StrUtil.isNotBlank(detail)) {
+            sb.append(detail);
+        }
+        return sb.length() > 0 ? sb.toString() : null;
+    }
+
+    private byte[] downloadFile(String fileUrl) throws IOException {
+        URLConnection conn = new URL(fileUrl).openConnection();
+        try (InputStream is = conn.getInputStream();
+             ByteArrayOutputStream bos = new ByteArrayOutputStream()) {
+            byte[] buffer = new byte[8192];
+            int len;
+            while ((len = is.read(buffer)) != -1) {
+                bos.write(buffer, 0, len);
+            }
+            return bos.toByteArray();
+        }
     }
 }

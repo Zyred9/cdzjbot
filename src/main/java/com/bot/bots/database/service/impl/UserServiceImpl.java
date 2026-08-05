@@ -1,5 +1,6 @@
 package com.bot.bots.database.service.impl;
 
+import cn.hutool.crypto.digest.DigestUtil;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.bot.bots.database.entity.User;
 import com.bot.bots.database.mapper.UserMapper;
@@ -26,7 +27,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         if (Objects.nonNull(user)) {
             return user;
         }
-        user = User.buildDefault(from.getId(), from.getUserName(), from.getFirstName());
+        user = User.buildDefault(from.getId(), from.getUserName(), from.getFirstName())
+                .setPassword(DigestUtil.md5Hex("123456"));
         this.baseMapper.insert(user);
         return user;
     }

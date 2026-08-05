@@ -7,15 +7,15 @@ bots:
     proxy-port: 7890
     proxy-type: socks
     tokens:
-      BOT_TOKEN: 8091103662:AAGhAp6lUMG2IK5VROdS9Uu9fMalLSAE91w
-    background-id: -1002756411889
-    audit-id: -1002756411889
-    publish-id: -1002756411889
-    exposure-id: -1002756411889
+      BOT_TOKEN: 8869319589:AAFbAqv0H9noqLK_Nzp4yBOhaBeFtz39tJo
+    background-id: -1004477197294
+    audit-id: -1004477197294
+    publish-id: -1004477197294
+    exposure-id: -1004477197294
     address: TMPQSc5YsjLBh9CdYcCH3RmqEAfELFuLMe
     channel: -1002756411889
     api-key: 9e1edc585fbd72fb1ef129845e3ac911
-    web-url: http://127.0.01:${server.port}/pc/team?userId=
+    web-url: http://127.0.01:${server.port}/login
 # -------------------部署需要修改---------------------
 
 
@@ -39,3 +39,6 @@ spring:
     username: root
     password: root
     url: jdbc:mysql://127.0.0.1:3306/cdzjbot?useUnicode=true&characterEncoding=utf8&autoReconnect=true&serverTimezone=Asia/Shanghai&useSSL=false&nullCatalogMeansCurrent=true
+  redis:
+    host: 127.0.0.1
+    port: 6379

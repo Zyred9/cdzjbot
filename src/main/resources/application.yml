@@ -1,9 +1,19 @@
 spring:
   profiles:
-    active: prod
+    active: dev
   datasource:
     hikari:
       maximum-pool-size: 3
       minimum-idle: 1
+  session:
+    store-type: redis
+    redis:
+      namespace: cdzjbot
+    timeout: 7d
 server:
   port: 9527
+  servlet:
+    session:
+      timeout: 7d
+      cookie:
+        max-age: 7d

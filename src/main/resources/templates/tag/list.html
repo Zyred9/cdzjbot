@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="layout/base :: layout(~{::body})">
+<body>
+<h2>标签管理</h2>
+<style>
+    .card { background: #fff; padding: 16px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.06); }
+    .toolbar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+    .input { padding: 8px 10px; border: 1px solid #dcdfe6; border-radius: 6px; outline: none; }
+    .btn { padding: 8px 14px; border-radius: 6px; background: #1677ff; color: #fff; border: none; cursor: pointer; }
+    .btn:hover { background: #0f66dd; }
+    table { border-collapse: collapse; width: 100%; background: #fff; border-radius: 10px; overflow: hidden; }
+    thead th { background: #f6f8fa; color: #333; padding: 10px 8px; border: 1px solid #e5e7eb; text-align: center; }
+    tbody td { padding: 10px 8px; border: 1px solid #e5e7eb; text-align: center; }
+    tbody tr:nth-child(odd) { background: #fcfcfd; }
+    tbody tr:hover { background: #f2f8ff; }
+    .pager { margin-top: 12px; }
+    .color-preview { display: inline-block; width: 20px; height: 20px; border-radius: 4px; border: 1px solid #ddd; vertical-align: middle; margin-right: 6px; }
+    .color-cell { display: flex; align-items: center; justify-content: center; gap: 6px; }
+</style>
+
+<div class="toolbar">
+    <input class="input" id="q_name" placeholder="标签名称"/>
+    <button class="btn" onclick="loadData(1)">查询</button>
+    <button class="btn" onclick="refreshPage()">刷新</button>
+    <button class="btn" onclick="openCreateModal()" style="background:#52c41a">新建标签</button>
+    <button class="btn" th:onclick="|location.href='@{/pc/acceptance(userId=${userId})}'|">去承兑报备</button>
+    <button class="btn" th:onclick="|location.href='@{/pc/team(userId=${userId})}'|">去车队报备</button>
+    <a class="btn" href="/logout" style="background:#ff4d4f;text-decoration:none;display:inline-block">退出登录</a>
+</div>
+
+<table>
+    <thead>
+    <tr>
+        <th>ID</th>
+        <th>标签名称</th>
+        <th>颜色</th>
+        <th>创建时间</th>
+        <th>操作</th>
+    </tr>
+    </thead>
+    <tbody id="tbody"></tbody>
+</table>
+
+<div class="pager">
+    <button class="btn" onclick="prev()">上一页</button>
+    <select class="input" onchange="changePageSize(this.value)" style="padding:6px 8px">
+        <option value="10">10条/页</option>
+        <option value="20">20条/页</option>
+        <option value="50">50条/页</option>
+        <option value="100">100条/页</option>
+    </select>
+    <span id="pageInfo"></span>
+    <button class="btn" onclick="next()">下一页</button>
+</div>
+
+<script>
+    const _fetch = window.fetch;
+    window.fetch = async function(...args) {
+        const resp = await _fetch.apply(this, args);
+        if (resp.status === 401) {
+            window.location.href = '/login';
+            throw new Error('Unauthorized');
+        }
+        return resp;
+    };
+
+    let pageNo = 1, pageSize = 10, total = 0, pages = 0;
+
+    function q(v){ return document.getElementById(v).value.trim(); }
+    function refreshPage(){ loadData(pageNo); }
+
+    function buildParams(pn){
+        const p = new URLSearchParams();
+        p.set('pageNo', pn.toString());
+        p.set('pageSize', pageSize.toString());
+        if(q('q_name')) p.set('name', q('q_name'));
+        return p.toString();
+    }
+
+    async function loadData(pn){
+        try {
+            const resp = await fetch('/api/tag/list?' + buildParams(pn));
+            if (!resp.ok) { console.warn('接口请求失败', resp.status); return; }
+            const data = await resp.json();
+            const list = Array.isArray(data.records) ? data.records : (Array.isArray(data) ? data : []);
+            pageNo = (data.current ?? pageNo) || 1;
+            pageSize = (data.size ?? pageSize) || 10;
+            total = data.total ?? list.length ?? 0;
+            pages = data.pages ?? (pageSize > 0 ? Math.ceil(total / pageSize) : 0);
+
+            const tbody = document.getElementById('tbody');
+            tbody.innerHTML = list.map(it => `
+                <tr>
+                    <td>${it.id ?? ''}</td>
+                    <td>${it.name ?? ''}</td>
+                    <td>
+                        <div class="color-cell">
+                            <span class="color-preview" style="background:${it.color || '#ccc'}"></span>
+                            <span>${it.color ?? ''}</span>
+                        </div>
+                    </td>
+                    <td>${it.createTime ?? ''}</td>
+                    <td>
+                        <button class="btn" onclick="editRow(${it.id})">编辑</button>
+                        <button class="btn" style="background:#ff4d4f" onclick="deleteRow(${it.id})">删除</button>
+                    </td>
+                </tr>
+            `).join('');
+
+            document.getElementById('pageInfo').innerText = `第 ${pageNo} / ${pages} 页，共 ${total} 条`;
+        } catch (e) {
+            console.error('加载数据异常', e);
+        }
+    }
+
+    function prev(){ if(pageNo > 1) loadData(pageNo - 1); }
+    function next(){ if(pageNo < pages) loadData(pageNo + 1); }
+    function changePageSize(ps){ pageSize = parseInt(ps); loadData(1); }
+
+    // ======= 编辑弹窗逻辑 =======
+    let editCache = null;
+    let isCreate = false;
+
+    function openEditModal() { document.getElementById('editMask').style.display = 'block'; }
+    function closeEditModal() { document.getElementById('editMask').style.display = 'none'; editCache = null; isCreate = false; }
+
+    function openCreateModal(){
+        isCreate = true;
+        editCache = null;
+        setVal('e_name', '');
+        setVal('e_color', '#1677ff');
+        openEditModal();
+    }
+
+    async function editRow(id){
+        isCreate = false;
+        const resp = await fetch('/api/tag/' + id);
+        const item = await resp.json();
+        editCache = item;
+        setVal('e_name', item.name || '');
+        setVal('e_color', item.color || '#1677ff');
+        openEditModal();
+    }
+
+    function setVal(id, v){ const el = document.getElementById(id); if(el) el.value = v; }
+
+    async function saveEdit(){
+        const name = document.getElementById('e_name').value.trim();
+        const color = document.getElementById('e_color').value.trim();
+        if (!name) { alert('请输入标签名称'); return; }
+        if (!color) { alert('请选择颜色'); return; }
+
+        if (isCreate) {
+            const body = { name, color };
+            const resp = await fetch('/api/tag', {
+                method: 'POST',
+                headers: {'Content-Type':'application/json'},
+                body: JSON.stringify(body)
+            });
+            const ok = await resp.json();
+            if(ok){ alert('创建成功'); closeEditModal(); refreshPage(); } else { alert('创建失败'); }
+        } else {
+            if(!editCache) return;
+            const body = { ...editCache, name, color };
+            const resp = await fetch('/api/tag/' + body.id, {
+                method: 'PUT',
+                headers: {'Content-Type':'application/json'},
+                body: JSON.stringify(body)
+            });
+            const ok = await resp.json();
+            if(ok){ alert('更新成功'); closeEditModal(); refreshPage(); } else { alert('更新失败'); }
+        }
+    }
+
+    async function deleteRow(id){
+        if(!confirm('确认删除该标签？')) return;
+        const resp = await fetch('/api/tag/' + id, { method: 'DELETE' });
+        const ok = await resp.json();
+        if(ok){ alert('删除成功'); refreshPage(); } else { alert('删除失败'); }
+    }
+
+    loadData(1);
+</script>
+
+<!-- 编辑弹窗 -->
+<style>
+    .mask { display:none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 999; }
+    .modal { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 480px; background: #fff; border-radius: 10px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.15); }
+    .modal-hd { padding: 12px 16px; background: #f6f8fa; font-weight: 600; }
+    .modal-bd { padding: 16px; display: grid; grid-template-columns: 1fr; gap: 12px; }
+    .modal-ft { padding: 12px 16px; text-align: right; background: #fafafa; }
+    .form-item { display: flex; flex-direction: column; gap: 6px; }
+    .label { color: #666; font-size: 13px; }
+    .ipt { width: 100%; padding: 8px 10px; border: 1px solid #dcdfe6; border-radius: 6px; outline: none; box-sizing: border-box; }
+    .color-ipt { width: 60px; height: 36px; padding: 2px; border: 1px solid #dcdfe6; border-radius: 6px; outline: none; cursor: pointer; }
+</style>
+<div id="editMask" class="mask">
+    <div class="modal">
+        <div class="modal-hd" id="modalTitle">编辑标签</div>
+        <div class="modal-bd">
+            <div class="form-item"><span class="label">标签名称</span><input id="e_name" class="ipt" placeholder="请输入标签名称"/></div>
+            <div class="form-item">
+                <span class="label">颜色</span>
+                <div style="display:flex;align-items:center;gap:8px;">
+                    <input id="e_color" type="color" class="color-ipt"/>
+                    <input id="e_color_text" class="ipt" placeholder="#色号" style="flex:1" oninput="document.getElementById('e_color').value = this.value"/>
+                </div>
+            </div>
+        </div>
+        <div class="modal-ft">
+            <button class="btn" onclick="saveEdit()">保存</button>
+            <button class="btn" style="background:#999" onclick="closeEditModal()">取消</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.getElementById('e_color').addEventListener('input', function(){
+        document.getElementById('e_color_text').value = this.value;
+    });
+    document.getElementById('modalTitle').addEventListener('DOMNodeInserted', function(){}); // keep same
+    function openEditModal(){
+        document.getElementById('modalTitle').innerText = isCreate ? '新建标签' : '编辑标签';
+        document.getElementById('editMask').style.display = 'block';
+    }
+</script>
+
+</body>
+</html>
