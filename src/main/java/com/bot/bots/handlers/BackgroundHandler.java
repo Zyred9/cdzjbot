@@ -10,6 +10,7 @@ import com.bot.bots.database.entity.BroadcastCategory;
 import com.bot.bots.database.entity.Config;
 import com.bot.bots.database.entity.Tag;
 import com.bot.bots.database.entity.User;
+import com.bot.bots.database.enums.CustomerTypeEnum;
 import com.bot.bots.database.service.AcceptanceCtxService;
 import com.bot.bots.database.service.BroadcastCategoryService;
 import com.bot.bots.database.service.ConfigService;
@@ -38,6 +39,7 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -47,6 +49,7 @@ import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /**
  * <p>
@@ -328,15 +331,14 @@ public class BackgroundHandler extends AbstractHandler {
 
             for (Map<Integer, String> row : rows) {
                 String customerTag = this.getCellValue(row, 4);
-                Long tagId = this.getOrCreateTag(tagCache, customerTag);
+                List<Long> tagIds = this.getOrCreateTags(tagCache, customerTag);
 
                 AcceptanceCtx ctx = new AcceptanceCtx()
-                        .setId(this.generateId())
                         .setUserId(this.generateId())
                         .setUsername(this.getCellValue(row, 1))
                         .setNickname(this.getCellValue(row, 2))
                         .setCustomerType(this.parseCustomerType(this.getCellValue(row, 3)))
-                        .setTagId(tagId)
+                        .setTagIds(tagIds)
                         .setAddress(this.mergeAddress(
                                 this.getCellValue(row, 5),
                                 this.getCellValue(row, 6),
@@ -367,7 +369,18 @@ public class BackgroundHandler extends AbstractHandler {
     }
 
     private Long generateId() {
-        return -(1_000_000_000L + ThreadLocalRandom.current().nextLong(9_000_000_000L));
+        return 1_000_000_000L + ThreadLocalRandom.current().nextLong(9_000_000_000L);
+    }
+
+    private List<Long> getOrCreateTags(Map<String, Long> tagCache, String customerTag) {
+        if (StrUtil.isBlank(customerTag)) {
+            return null;
+        }
+        return Arrays.stream(customerTag.split("[,，、;；\\s]+"))
+                .map(String::trim)
+                .filter(StrUtil::isNotBlank)
+                .map(tagName -> this.getOrCreateTag(tagCache, tagName))
+                .collect(Collectors.toList());
     }
 
     private Long getOrCreateTag(Map<String, Long> tagCache, String tagName) {
@@ -396,10 +409,13 @@ public class BackgroundHandler extends AbstractHandler {
             return null;
         }
         if (type.contains("已合作") || type.contains("合作")) {
-            return 1;
+            return CustomerTypeEnum.COOPERATION.getCode();
         }
         if (type.contains("未合作")) {
-            return 2;
+            return CustomerTypeEnum.NON_COOPERATION.getCode();
+        }
+        if (type.contains("休息中")) {
+            return CustomerTypeEnum.RESTING.getCode();
         }
         return null;
     }

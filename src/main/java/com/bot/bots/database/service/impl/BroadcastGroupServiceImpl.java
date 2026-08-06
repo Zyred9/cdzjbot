@@ -19,12 +19,15 @@ public class BroadcastGroupServiceImpl extends ServiceImpl<BroadcastGroupMapper,
     private final BroadcastCategoryGroupService broadcastCategoryGroupService;
 
     @Override
-    public BroadcastGroup addGroup(Long chatId, String groupName) {
+    public void createIfAbsent(Long chatId, String groupName) {
+        long count = this.lambdaQuery().eq(BroadcastGroup::getChatId, chatId).count();
+        if (count > 0) {
+            return;
+        }
         BroadcastGroup group = new BroadcastGroup()
                 .setChatId(chatId)
                 .setGroupName(groupName);
-        this.saveOrUpdate(group);
-        return group;
+        this.save(group);
     }
 
     @Override

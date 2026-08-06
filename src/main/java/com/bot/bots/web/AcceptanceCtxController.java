@@ -8,6 +8,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.bot.bots.database.entity.AcceptanceCtx;
 import com.bot.bots.database.entity.Tag;
 import com.bot.bots.database.enums.CategoryEnum;
+import com.bot.bots.database.enums.CustomerTypeEnum;
 import com.bot.bots.database.enums.ForbidTypeEnum;
 import com.bot.bots.database.enums.MaterialEnum;
 import com.bot.bots.database.service.AcceptanceCtxService;
@@ -42,8 +43,6 @@ public class AcceptanceCtxController {
     private static final LinkedHashMap<String, String> COLUMN_DEFS = new LinkedHashMap<>();
 
     static {
-        COLUMN_DEFS.put("id", "主键ID");
-        COLUMN_DEFS.put("userId", "用户ID");
         COLUMN_DEFS.put("username", "用户名");
         COLUMN_DEFS.put("nickname", "用户昵称");
         COLUMN_DEFS.put("address", "地址");
@@ -54,10 +53,12 @@ public class AcceptanceCtxController {
         COLUMN_DEFS.put("rate", "汇率");
         COLUMN_DEFS.put("materials", "料性");
         COLUMN_DEFS.put("forbids", "禁止");
-        COLUMN_DEFS.put("airborne", "是否空降");
-        COLUMN_DEFS.put("station", "是否驻点");
-        COLUMN_DEFS.put("move", "是否移动");
-        COLUMN_DEFS.put("follow", "是否跟车");
+        COLUMN_DEFS.put("airborne", "空降");
+        COLUMN_DEFS.put("station", "驻点");
+        COLUMN_DEFS.put("move", "移动");
+        COLUMN_DEFS.put("follow", "跟车");
+        COLUMN_DEFS.put("id", "主键ID");
+        COLUMN_DEFS.put("userId", "用户ID");
         COLUMN_DEFS.put("location", "经纬度");
     }
 
@@ -111,13 +112,18 @@ public class AcceptanceCtxController {
             }
         }
 
+        final List<Long> filterTagIds = tagIds;
         return acceptanceCtxService.page(Page.of(pageNo, pageSize), Wrappers.<AcceptanceCtx>lambdaQuery()
                 .eq(Objects.nonNull(userId), AcceptanceCtx::getUserId, userId)
                 .eq(StrUtil.isNotBlank(username), AcceptanceCtx::getUsername, username)
                 .like(StrUtil.isNotBlank(nickname), AcceptanceCtx::getNickname, nickname)
                 .like(StrUtil.isNotBlank(address), AcceptanceCtx::getAddress, address)
                 .eq(Objects.nonNull(customerType), AcceptanceCtx::getCustomerType, customerType)
-                .in(CollUtil.isNotEmpty(tagIds), AcceptanceCtx::getTagId, CollUtil.isNotEmpty(tagIds) ? tagIds : null)
+                .and(CollUtil.isNotEmpty(filterTagIds), w -> {
+                    for (Long tagId : filterTagIds) {
+                        w.or().apply("JSON_CONTAINS(tag_ids, JSON_ARRAY({0}))", tagId);
+                    }
+                })
                 .orderByDesc(AcceptanceCtx::getId));
     }
 
@@ -185,12 +191,20 @@ public class AcceptanceCtxController {
             case "username": return ctx.getUsername();
             case "nickname": return ctx.getNickname();
             case "address": return ctx.getAddress();
-            case "customerType":
-                return Objects.equals(1, ctx.getCustomerType()) ? "合作"
-                        : Objects.equals(2, ctx.getCustomerType()) ? "未合作" : "";
+            case "customerType": {
+                CustomerTypeEnum type = Objects.isNull(ctx.getCustomerType())
+                        ? null : CustomerTypeEnum.of(ctx.getCustomerType());
+                return type != null ? type.getDesc() : "";
+            }
             case "tagName": {
-                Tag tag = tagMap.get(ctx.getTagId());
-                return tag != null ? tag.getName() : "";
+                if (CollUtil.isEmpty(ctx.getTagIds())) {
+                    return "";
+                }
+                return ctx.getTagIds().stream()
+                        .map(tagMap::get)
+                        .filter(Objects::nonNull)
+                        .map(Tag::getName)
+                        .collect(Collectors.joining("、"));
             }
             case "categories":
                 return CollUtil.isEmpty(ctx.getCategories()) ? ""

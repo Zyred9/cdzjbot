@@ -30,6 +30,8 @@ public class BotProperties {
     private String proxyHostName = "";
     /** 代理 **/
     private String botUsername;
+    /** 机器人自身ID（启动时通过 GetMe 获取） **/
+    private Long botId;
     private Map<String, String> tokens;
 
 

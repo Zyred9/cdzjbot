@@ -43,18 +43,6 @@ public class BroadcastController {
         return this.broadcastGroupService.listAll();
     }
 
-    @PostMapping("/api/broadcast/group/add")
-    @ResponseBody
-    public Map<String, Object> addGroup(@RequestBody Map<String, String> body) {
-        String chatIdStr = body.get("chatId");
-        String groupName = body.get("groupName");
-        Assert.notNull(chatIdStr, "chatId不能为空");
-        Assert.notNull(groupName, "群名称不能为空");
-        Long chatId = Long.parseLong(chatIdStr);
-        this.broadcastGroupService.addGroup(chatId, groupName);
-        return MapUtil.of("success", true);
-    }
-
     @DeleteMapping("/api/broadcast/group/{chatId}")
     @ResponseBody
     public Map<String, Object> removeGroup(@PathVariable Long chatId) {

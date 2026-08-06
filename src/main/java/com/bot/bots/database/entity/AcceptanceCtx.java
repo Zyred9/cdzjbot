@@ -62,8 +62,9 @@ public class AcceptanceCtx {
     private String location;
     // 客户类型
     private Integer customerType;
-    // 标签ID
-    private Long tagId;
+    // 标签ID列表（多标签）
+    @TableField(typeHandler = JacksonTypeHandler.class)
+    private List<Long> tagIds;
 
     @TableField(exist = false)
     private Integer distance;

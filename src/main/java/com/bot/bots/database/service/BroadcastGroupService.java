@@ -7,7 +7,13 @@ import java.util.List;
 
 public interface BroadcastGroupService extends IService<BroadcastGroup> {
 
-    BroadcastGroup addGroup(Long chatId, String groupName);
+    /**
+     * 群组不存在时登记
+     *
+     * @param chatId    Telegram群ID
+     * @param groupName 群名称
+     */
+    void createIfAbsent(Long chatId, String groupName);
 
     List<BroadcastGroup> listAll();
 

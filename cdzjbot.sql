@@ -256,10 +256,10 @@ CREATE TABLE `t_tag`  (
 ) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '标签表' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
--- Alter t_acceptance_ctx add customer_type and tag_id
+-- Alter t_acceptance_ctx add customer_type and tag_ids
 -- ----------------------------
 ALTER TABLE `t_acceptance_ctx`
   ADD COLUMN `customer_type` tinyint NULL DEFAULT NULL COMMENT '客户类型：1-合作 2-未合作' AFTER `location`,
-  ADD COLUMN `tag_id` bigint NULL DEFAULT NULL COMMENT '标签ID' AFTER `customer_type`;
+  ADD COLUMN `tag_ids` json NULL COMMENT '标签ID列表(JSON数组，多标签)' AFTER `customer_type`;
 
 SET FOREIGN_KEY_CHECKS = 1;

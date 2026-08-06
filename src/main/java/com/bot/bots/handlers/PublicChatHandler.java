@@ -4,6 +4,7 @@ import cn.hutool.core.util.StrUtil;
 import com.bot.bots.config.BotProperties;
 import com.bot.bots.database.entity.Config;
 import com.bot.bots.database.enums.PaymentEnum;
+import com.bot.bots.database.service.BroadcastGroupService;
 import com.bot.bots.database.service.ConfigService;
 import com.bot.bots.helper.JexlCalculator;
 import com.bot.bots.helper.KeyboardHelper;
@@ -33,6 +34,7 @@ public class PublicChatHandler extends AbstractHandler {
     @Resource private BotProperties properties;
     @Resource private ConfigService configService;
     @Resource private PrivateChatHandler privateChatHandler;
+    @Resource private BroadcastGroupService broadcastGroupService;
 
     @Override
     public boolean support(Update update) {
@@ -46,6 +48,8 @@ public class PublicChatHandler extends AbstractHandler {
     protected BotApiMethod<?> execute(Update update) {
         Message message = update.getMessage();
         String text = message.getText();
+
+        this.broadcastGroupService.createIfAbsent(message.getChatId(), message.getChat().getTitle());
 
         PaymentEnum payment = PaymentEnum.of(text);
         if (Objects.nonNull(payment)) {

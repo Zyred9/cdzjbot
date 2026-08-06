@@ -36,7 +36,8 @@ spring:
     url: jdbc:mysql://127.0.0.1:3306/cdzjbot?useUnicode=true&characterEncoding=utf8&autoReconnect=true&serverTimezone=Asia/Shanghai&useSSL=false&nullCatalogMeansCurrent=true
   redis:
     host: 127.0.0.1
-    port: 6379
+    port: 51379
+    password: devrobots
 logging:
   level:
     com.db.bots: ERROR

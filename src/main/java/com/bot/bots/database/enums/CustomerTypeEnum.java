@@ -20,6 +20,7 @@ public enum CustomerTypeEnum {
 
     COOPERATION(1, "合作"),
     NON_COOPERATION(2, "未合作"),
+    RESTING(3, "休息中"),
     ;
 
     @EnumValue

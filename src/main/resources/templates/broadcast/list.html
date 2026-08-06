@@ -51,11 +51,6 @@
         <div class="col">
             <div class="card">
                 <div class="section-title">群组管理</div>
-                <div class="inline-form" style="margin-bottom:10px">
-                    <input class="input" id="g_chatId" placeholder="群ChatId"/>
-                    <input class="input" id="g_groupName" placeholder="群名称"/>
-                    <button class="btn" onclick="addGroup()">添加群组</button>
-                </div>
                 <table><thead><tr><th>选择</th><th>ChatId</th><th>群名称</th><th>操作</th></tr></thead></table>
                 <div id="groupList"></div>
             </div>
@@ -141,19 +136,6 @@
     function onGroupCheck(chatId, checked){
         checkedChatIds[chatId] = checked;
         if (!checked) delete checkedChatIds[chatId];
-    }
-
-    async function addGroup(){
-        const chatId = document.getElementById('g_chatId').value.trim();
-        const groupName = document.getElementById('g_groupName').value.trim();
-        if(!chatId||!groupName){alert('ChatId和群名称不能为空');return;}
-        const resp = await fetch('/api/broadcast/group/add',{
-            method:'POST',headers:{'Content-Type':'application/json'},
-            body:JSON.stringify({chatId, groupName})
-        });
-        const r = await resp.json();
-        if(r.success){ document.getElementById('g_chatId').value=''; document.getElementById('g_groupName').value=''; loadGroups(); }
-        else alert('添加失败');
     }
 
     async function removeGroup(chatId){
