@@ -11,8 +11,6 @@ import org.telegram.telegrambots.meta.api.objects.Update;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 
 /**
@@ -36,38 +34,38 @@ public interface MultiThreadUpdateConsumer extends LongPollingUpdateConsumer {
             .build();
 
     default void consume(List<Update> updates) {
-        boolean add = true;
+        boolean hasMedia = false;
+        List<Update> normalUpdates = new ArrayList<>();
         for (Update update : updates) {
             if (update.hasMessage() && (update.getMessage().hasPhoto()
                     || update.getMessage().hasVideo())
                     && StrUtil.isNotBlank(update.getMessage().getMediaGroupId())) {
                 String mediaGroupId = update.getMessage().getMediaGroupId();
-                if (!TEMP_UPDATES.containsKey(mediaGroupId)) {
-                    List<Update> newUpdates = new ArrayList<>();
-                    newUpdates.add(update);
-                    TEMP_UPDATES.put(mediaGroupId, newUpdates);
-                } else {
-                    List<Update> list = TEMP_UPDATES.get(mediaGroupId);
-                    list.add(update);
-                }
-                add = false;
+                TEMP_UPDATES.computeIfAbsent(mediaGroupId, k -> new ArrayList<>()).add(update);
+                hasMedia = true;
+            } else {
+                normalUpdates.add(update);
             }
         }
 
-        if (add) {
+        if (CollUtil.isNotEmpty(normalUpdates)) {
             EX.execute(() -> {
-                CollUtil.sort(updates, (o1, o2) -> o2.getUpdateId() - o1.getUpdateId());
-                for (Update update : updates) {
+                CollUtil.sort(normalUpdates, (o1, o2) -> o1.getUpdateId() - o2.getUpdateId());
+                for (Update update : normalUpdates) {
                     this.consume(update);
                 }
             });
-        } else {
+        }
+
+        if (hasMedia) {
             ThreadHelper.execute(() -> {
                 ThreadHelper.sleep(2);
-                Set<Map.Entry<String, List<Update>>> entries = TEMP_UPDATES.entrySet();
-                for (Map.Entry<String, List<Update>> entry : entries) {
+                for (Map.Entry<String, List<Update>> entry : TEMP_UPDATES.entrySet()) {
                     List<Update> mergeUpdates = TEMP_UPDATES.remove(entry.getKey());
-                    CollUtil.sort(mergeUpdates, (o1, o2) -> o2.getUpdateId() - o1.getUpdateId());
+                    if (CollUtil.isEmpty(mergeUpdates)) {
+                        continue;
+                    }
+                    CollUtil.sort(mergeUpdates, (o1, o2) -> o1.getUpdateId() - o2.getUpdateId());
                     for (Update update : mergeUpdates) {
                         this.consume(update);
                     }

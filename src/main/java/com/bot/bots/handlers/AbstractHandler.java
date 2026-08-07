@@ -252,7 +252,6 @@ public abstract class AbstractHandler {
     protected EditMessageCaption editCaption(Message message, String caption) {
         return EditMessageCaption.builder()
                 .messageId(message.getMessageId())
-                .messageId(message.getMessageId())
                 .chatId(message.getChatId())
                 .caption(caption)
                 .build();
@@ -260,7 +259,6 @@ public abstract class AbstractHandler {
 
     protected EditMessageCaption editCaption(Message message, String caption, InlineKeyboardMarkup markup) {
         return EditMessageCaption.builder()
-                .messageId(message.getMessageId())
                 .messageId(message.getMessageId())
                 .chatId(message.getChatId())
                 .replyMarkup(markup)
@@ -271,7 +269,6 @@ public abstract class AbstractHandler {
     protected EditMessageCaption editCaptionMarkdown(Message message, String caption) {
         return EditMessageCaption.builder()
                 .messageId(message.getMessageId())
-                .messageId(message.getMessageId())
                 .parseMode(ParseMode.MARKDOWN)
                 .chatId(message.getChatId())
                 .caption(caption)
@@ -280,7 +277,6 @@ public abstract class AbstractHandler {
 
     protected EditMessageCaption editCaptionMarkdown(Message message, String caption, InlineKeyboardMarkup markup) {
         return EditMessageCaption.builder()
-                .messageId(message.getMessageId())
                 .messageId(message.getMessageId())
                 .parseMode(ParseMode.MARKDOWN)
                 .chatId(message.getChatId())

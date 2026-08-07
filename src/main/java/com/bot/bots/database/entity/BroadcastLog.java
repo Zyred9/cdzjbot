@@ -19,6 +19,7 @@ public class BroadcastLog {
     private Long id;
     private Long categoryId;
     private String content;
+    private Integer hasImage;
     private Long senderId;
     private Integer groupCount;
     private Integer successCount;

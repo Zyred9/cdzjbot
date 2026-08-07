@@ -5,17 +5,9 @@ import cn.hutool.core.util.StrUtil;
 import cn.hutool.crypto.digest.DigestUtil;
 import com.alibaba.excel.EasyExcel;
 import com.bot.bots.config.BotProperties;
-import com.bot.bots.database.entity.AcceptanceCtx;
-import com.bot.bots.database.entity.BroadcastCategory;
-import com.bot.bots.database.entity.Config;
-import com.bot.bots.database.entity.Tag;
-import com.bot.bots.database.entity.User;
+import com.bot.bots.database.entity.*;
 import com.bot.bots.database.enums.CustomerTypeEnum;
-import com.bot.bots.database.service.AcceptanceCtxService;
-import com.bot.bots.database.service.BroadcastCategoryService;
-import com.bot.bots.database.service.ConfigService;
-import com.bot.bots.database.service.TagService;
-import com.bot.bots.database.service.UserService;
+import com.bot.bots.database.service.*;
 import com.bot.bots.helper.DecimalHelper;
 import com.bot.bots.helper.KeyboardHelper;
 import com.bot.bots.sender.AsyncSender;
@@ -38,14 +30,7 @@ import java.math.BigDecimal;
 import java.net.URL;
 import java.net.URLConnection;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -445,7 +430,7 @@ public class BackgroundHandler extends AbstractHandler {
         if (StrUtil.isNotBlank(detail)) {
             sb.append(detail);
         }
-        return sb.length() > 0 ? sb.toString() : null;
+        return !sb.isEmpty() ? sb.toString() : null;
     }
 
     private byte[] downloadFile(String fileUrl) throws IOException {

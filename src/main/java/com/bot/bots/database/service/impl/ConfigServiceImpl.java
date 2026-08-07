@@ -5,10 +5,11 @@ import com.bot.bots.config.BotProperties;
 import com.bot.bots.database.entity.Config;
 import com.bot.bots.database.mapper.ConfigMapper;
 import com.bot.bots.database.service.ConfigService;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
-import java.util.List;
+import java.util.ArrayList;
 import java.util.Objects;
 
 /**
@@ -36,10 +37,15 @@ public class ConfigServiceImpl extends ServiceImpl<ConfigMapper, Config> impleme
                     .setSelfText("")
                     .setSelfKeyboard("{}")
                     .setQueryKeyboard("{}")
-                    .setEditable(List.of())
+                    .setEditable(new ArrayList<>())
                     .setChatId(this.properties.getBackgroundId());
 
-            this.baseMapper.insert(config);
+            try {
+                this.baseMapper.insert(config);
+            } catch (DuplicateKeyException e) {
+                // 并发插入主键冲突，重新查询返回
+                return this.baseMapper.selectById(backgroundId);
+            }
         }
         return config;
     }

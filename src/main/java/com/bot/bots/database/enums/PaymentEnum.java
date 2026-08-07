@@ -12,6 +12,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 import java.util.Locale;
+import java.util.Objects;
 
 @Getter
 @AllArgsConstructor
@@ -31,6 +32,9 @@ public enum PaymentEnum {
 
 
     public static PaymentEnum of(String code) {
+        if (Objects.isNull(code)) {
+            return null;
+        }
         code = code.toUpperCase(Locale.ROOT);
         for (PaymentEnum value : PaymentEnum.values()) {
             if (value.code.equals(code)) {

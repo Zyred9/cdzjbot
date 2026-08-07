@@ -15,6 +15,7 @@ import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageTe
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import org.telegram.telegrambots.meta.generics.TelegramClient;
 
+import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
 import java.util.Objects;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -35,17 +36,21 @@ public class AsyncSender {
     @Resource private BotProperties properties;
     @Resource private TelegramClient telegramClient;
 
-    private static final LinkedBlockingQueue<PartialBotApiMethod<?>> QUEUE = new LinkedBlockingQueue<>();
+    private static final LinkedBlockingQueue<PartialBotApiMethod<?>> QUEUE = new LinkedBlockingQueue<>(10000);
     private static final long MIN_INTERVAL_MS = 50L;
 
     public static void async(PartialBotApiMethod<?> message) {
         if (Objects.isNull(message)) {
             return;
         }
-        QUEUE.add(message);
+        boolean offer = QUEUE.offer(message);
+        if (!offer) {
+            log.error("【异步发送队列已满，消息丢弃】消息内容：{}", JSONUtil.toJsonStr(message));
+        }
     }
 
-    public AsyncSender() {
+    @PostConstruct
+    public void start() {
         new Thread(() -> {
             while (!Thread.interrupted()) {
                 PartialBotApiMethod<?> take = null;
@@ -65,6 +70,8 @@ public class AsyncSender {
                     break;
                 } catch (TelegramApiException e) {
                     log.error("【异步发送异常】消息内容：{}，错误信息：{}", JSONUtil.toJsonStr(take), e.getMessage(), e);
+                } catch (Exception e) {
+                    log.error("【异步发送未知异常】消息内容：{}，错误信息：{}", JSONUtil.toJsonStr(take), e.getMessage(), e);
                 }
             }
         }).start();

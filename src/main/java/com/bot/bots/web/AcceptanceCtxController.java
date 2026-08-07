@@ -78,6 +78,7 @@ public class AcceptanceCtxController {
     @ResponseBody
     @PutMapping("/api/acceptance/{id}")
     public boolean update(@PathVariable Long id, @RequestBody AcceptanceCtx body) {
+        body.setId(id);
         return acceptanceCtxService.updateById(body);
     }
 
@@ -120,8 +121,14 @@ public class AcceptanceCtxController {
                 .like(StrUtil.isNotBlank(address), AcceptanceCtx::getAddress, address)
                 .eq(Objects.nonNull(customerType), AcceptanceCtx::getCustomerType, customerType)
                 .and(CollUtil.isNotEmpty(filterTagIds), w -> {
+                    boolean first = true;
                     for (Long tagId : filterTagIds) {
-                        w.or().apply("JSON_CONTAINS(tag_ids, JSON_ARRAY({0}))", tagId);
+                        if (first) {
+                            w.apply("JSON_CONTAINS(tag_ids, JSON_ARRAY({0}))", tagId);
+                            first = false;
+                        } else {
+                            w.or().apply("JSON_CONTAINS(tag_ids, JSON_ARRAY({0}))", tagId);
+                        }
                     }
                 })
                 .orderByDesc(AcceptanceCtx::getId));
@@ -141,6 +148,11 @@ public class AcceptanceCtxController {
         if (CollUtil.isEmpty(ids)) {
             response.setStatus(400);
             response.getWriter().write("no selected ids");
+            return;
+        }
+        if (ids.size() > 5000) {
+            response.setStatus(400);
+            response.getWriter().write("导出数量超过上限（5000 条），请缩小选择范围");
             return;
         }
 

@@ -12,6 +12,9 @@ import com.bot.bots.database.enums.ExposeStatus;
  */
 public interface ExposeService extends IService<Expose> {
 
-    void updateStatusAndAudit(Long id, ExposeStatus status);
+    /**
+     * 待审核状态下原子更新审核状态，返回是否更新成功（已审核过则返回 false）
+     */
+    boolean updateStatusAndAudit(Long id, ExposeStatus status);
 
 }

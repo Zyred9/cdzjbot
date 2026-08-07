@@ -2,27 +2,37 @@ package com.bot.bots.web;
 
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.map.MapUtil;
+import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.bot.bots.database.entity.*;
 import com.bot.bots.database.service.*;
 import com.bot.bots.sender.AsyncSender;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.util.Assert;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.methods.send.SendPhoto;
+import org.telegram.telegrambots.meta.api.objects.InputFile;
 
 import javax.servlet.http.HttpSession;
+import java.io.ByteArrayInputStream;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
+@Slf4j
 @Controller
 @RequestMapping
 @RequiredArgsConstructor
 public class BroadcastController {
+
+    private static final long MAX_IMAGE_SIZE = 10 * 1024 * 1024L;
 
     private final BroadcastGroupService broadcastGroupService;
     private final BroadcastCategoryService broadcastCategoryService;
@@ -94,11 +104,60 @@ public class BroadcastController {
 
     @PostMapping("/api/broadcast/send")
     @ResponseBody
-    public Map<String, Object> send(@RequestBody Map<String, Object> body, HttpSession session) {
-        Long categoryId = Long.parseLong(body.get("categoryId").toString());
-        String content = (String) body.get("content");
-        Assert.notNull(categoryId, "分类不能为空");
-        Assert.notNull(content, "内容不能为空");
+    public Map<String, Object> send(@RequestParam("categoryId") String categoryIdStr,
+                                    @RequestParam(value = "content", required = false) String content,
+                                    @RequestParam(value = "image", required = false) MultipartFile image,
+                                    HttpSession session) {
+        if (StrUtil.isBlank(categoryIdStr)) {
+            Map<String, Object> result = new HashMap<>();
+            result.put("success", false);
+            result.put("msg", "分类不能为空");
+            return result;
+        }
+        Long categoryId;
+        try {
+            categoryId = Long.parseLong(categoryIdStr);
+        } catch (NumberFormatException e) {
+            Map<String, Object> result = new HashMap<>();
+            result.put("success", false);
+            result.put("msg", "分类参数错误");
+            return result;
+        }
+
+        boolean hasImage = Objects.nonNull(image) && !image.isEmpty();
+        boolean hasText = StrUtil.isNotBlank(content);
+        if (!hasImage && !hasText) {
+            Map<String, Object> result = new HashMap<>();
+            result.put("success", false);
+            result.put("msg", "图片和文字至少填写一项");
+            return result;
+        }
+
+        byte[] imageBytes = null;
+        if (hasImage) {
+            if (image.getSize() > MAX_IMAGE_SIZE) {
+                Map<String, Object> result = new HashMap<>();
+                result.put("success", false);
+                result.put("msg", "图片大小不能超过 10MB");
+                return result;
+            }
+            String contentType = image.getContentType();
+            if (StrUtil.isBlank(contentType) || !contentType.startsWith("image/")) {
+                Map<String, Object> result = new HashMap<>();
+                result.put("success", false);
+                result.put("msg", "仅支持图片文件");
+                return result;
+            }
+            try {
+                imageBytes = image.getBytes();
+            } catch (Exception e) {
+                log.error("[群发] 读取上传图片失败，用户id：{}，分类id：{}", LoginController.getLoginUserId(session), categoryId, e);
+                Map<String, Object> result = new HashMap<>();
+                result.put("success", false);
+                result.put("msg", "图片读取失败");
+                return result;
+            }
+        }
 
         List<Long> chatIds = this.broadcastCategoryService.getChatIdsByCategoryId(categoryId);
         if (CollUtil.isEmpty(chatIds)) {
@@ -108,19 +167,31 @@ public class BroadcastController {
             return result;
         }
 
+        String filename = hasImage ? StrUtil.blankToDefault(image.getOriginalFilename(), "image.jpg") : null;
         for (Long chatId : chatIds) {
-            AsyncSender.async(SendMessage.builder().chatId(chatId.toString()).text(content).build());
+            if (hasImage) {
+                AsyncSender.async(SendPhoto.builder()
+                        .chatId(chatId.toString())
+                        .photo(new InputFile(new ByteArrayInputStream(imageBytes), filename))
+                        .caption(hasText ? content : null)
+                        .build());
+            } else {
+                AsyncSender.async(SendMessage.builder().chatId(chatId.toString()).text(content).build());
+            }
         }
 
         Long senderId = LoginController.getLoginUserId(session);
-        BroadcastLog log = new BroadcastLog()
+        BroadcastLog broadcastLog = new BroadcastLog()
                 .setCategoryId(categoryId)
-                .setContent(content)
+                .setContent(hasText ? content : null)
+                .setHasImage(hasImage ? 1 : 0)
                 .setSenderId(senderId)
                 .setGroupCount(chatIds.size())
                 .setSuccessCount(chatIds.size())
                 .setFailCount(0);
-        this.broadcastLogService.save(log);
+        this.broadcastLogService.save(broadcastLog);
+
+        log.info("[群发] 发送完成，用户id：{}，分类id：{}，含图片：{}，目标群数：{}", senderId, categoryId, hasImage, chatIds.size());
 
         Map<String, Object> result = new HashMap<>();
         result.put("success", true);

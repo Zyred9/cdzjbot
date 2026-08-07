@@ -7,6 +7,7 @@ import com.bot.bots.database.mapper.BroadcastGroupMapper;
 import com.bot.bots.database.service.BroadcastCategoryGroupService;
 import com.bot.bots.database.service.BroadcastGroupService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,7 +28,11 @@ public class BroadcastGroupServiceImpl extends ServiceImpl<BroadcastGroupMapper,
         BroadcastGroup group = new BroadcastGroup()
                 .setChatId(chatId)
                 .setGroupName(groupName);
-        this.save(group);
+        try {
+            this.save(group);
+        } catch (DuplicateKeyException e) {
+            // 并发插入主键冲突，忽略
+        }
     }
 
     @Override

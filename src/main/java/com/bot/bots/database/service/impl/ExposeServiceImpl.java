@@ -24,11 +24,12 @@ import javax.annotation.Resource;
 public class ExposeServiceImpl extends ServiceImpl<ExposeMapper, Expose> implements ExposeService  {
 
     @Override
-    public void updateStatusAndAudit(Long id, ExposeStatus status) {
-        this.baseMapper.update(
+    public boolean updateStatusAndAudit(Long id, ExposeStatus status) {
+        return this.baseMapper.update(
                 Wrappers.<Expose>lambdaUpdate()
                         .eq(Expose::getId, id)
+                        .eq(Expose::getStatus, ExposeStatus.WAIT)
                         .set(Expose::getStatus, status)
-        );
+        ) > 0;
     }
 }

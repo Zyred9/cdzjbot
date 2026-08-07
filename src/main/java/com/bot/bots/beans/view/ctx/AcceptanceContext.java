@@ -90,7 +90,7 @@ public class AcceptanceContext {
 
     public AcceptanceCtx buildCtx () {
         return new AcceptanceCtx()
-                .setAddress(this.provinceName+this.cityName+this.countyName)
+                .setAddress(StrUtil.nullToEmpty(this.provinceName) + StrUtil.nullToEmpty(this.cityName) + StrUtil.nullToEmpty(this.countyName))
                 .setCategories(this.categories)
                 .setIntervalInput(this.intervalInput)
                 .setRate(this.rate)
@@ -135,14 +135,12 @@ public class AcceptanceContext {
 
     public void incrementRate(double v) {
         BigDecimal value = BigDecimal.valueOf(v);
-        rate = Objects.nonNull(rate) ? rate : value;
-        this.rate = rate.add(value);
+        this.rate = (Objects.isNull(rate) ? BigDecimal.ZERO : rate).add(value);
     }
 
     public void subtractRate(double v) {
         BigDecimal value = BigDecimal.valueOf(v);
-        rate = Objects.nonNull(rate) ? rate : value;
-        this.rate = rate.subtract(value);
+        this.rate = (Objects.isNull(rate) ? BigDecimal.ZERO : rate).subtract(value);
     }
 
     public static String buildCtxText (AcceptanceContext ctx) {
@@ -252,6 +250,6 @@ public class AcceptanceContext {
 
 
     public String getAllAddress() {
-        return provinceName + cityName + countyName;
+        return StrUtil.nullToEmpty(provinceName) + StrUtil.nullToEmpty(cityName) + StrUtil.nullToEmpty(countyName);
     }
 }

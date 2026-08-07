@@ -7,11 +7,13 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.bot.bots.config.Constants;
 import com.bot.bots.helper.DecimalHelper;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 /**
  *
@@ -33,8 +35,12 @@ public class User {
     /** usdt 余额 **/
     private BigDecimal balance;
 
-    /** 后台管理登录密码（MD5） **/
+    /** 后台管理登录密码（BCrypt，兼容旧 MD5），敏感字段不参与 JSON 序列化输出 **/
+    @JsonIgnore
     private String password;
+
+    /** 创建时间 **/
+    private LocalDateTime createTime;
 
     public static User buildDefault(Long userId, String userName, String firstName) {
         return new User()

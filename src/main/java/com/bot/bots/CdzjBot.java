@@ -78,7 +78,30 @@ public class CdzjBot implements SpringLongPollingBot, MultiThreadUpdateConsumer 
             }
             log.error("【同步消息异常】消息内容：{} \n 异常消息：{}",
                     JSONUtil.toJsonStr(message), e.getMessage(), e);
+        } catch (Exception e) {
+            log.error("【消息处理异常】updateId：{}，chatId：{}，userId：{}，消息内容：{} \n 异常信息：{}",
+                    update.getUpdateId(), getChatId(update), getUserId(update), JSONUtil.toJsonStr(update), e.getMessage(), e);
         }
+    }
+
+    private String getChatId(Update update) {
+        if (update.hasMessage()) {
+            return String.valueOf(update.getMessage().getChatId());
+        }
+        if (update.hasCallbackQuery() && Objects.nonNull(update.getCallbackQuery().getMessage())) {
+            return String.valueOf(update.getCallbackQuery().getMessage().getChatId());
+        }
+        return null;
+    }
+
+    private String getUserId(Update update) {
+        if (update.hasMessage() && Objects.nonNull(update.getMessage().getFrom())) {
+            return String.valueOf(update.getMessage().getFrom().getId());
+        }
+        if (update.hasCallbackQuery() && Objects.nonNull(update.getCallbackQuery().getFrom())) {
+            return String.valueOf(update.getCallbackQuery().getFrom().getId());
+        }
+        return null;
     }
 
     private boolean isNotEnoughRights(TelegramApiException e) {

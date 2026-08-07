@@ -50,14 +50,4 @@ public class SecureHelper {
         return new String(decryptedBytes);
     }
 
-
-    public static void main(String[] args) throws Exception {
-        String val = "7612958407:AAGlZ1hsyQbJEyEO7vMVfR7n46qcxFuJeR4";
-        String key = "MIICdwIBADANBgkqhkiG9w0BAQEFAASCAmEwggJdAgEAAoGBAJhRqqNZsYq0FtAQjFPbhZxNhlzIpVvvgysIz/yUX/nw83DBmiYpuLbRxA/kp8pwDWsVMZcNbIVcgt4XYMJzlthKQ8t5ufbCE+DR2czAmOyWzQpKYbXyNVrCj3CyIH9vhopaudcFqwpL6Om4JUSuBcy2MarEBydCIsXGbKT4EkzpAgMBAAECgYAi7VETQXEyZL65aZ3/6Z2+3FEDzBeM2ARMFSp6GLzUR4HO+HnkJ9t9AmcynMQz6ZNOG29CW5fnkbHJgvNTS2WKahjPJmLU9UcLp3I15nI/KPgw1XNv2+MttqjIHdgErlhn1qwMUB0JQwxP6Kl839oTaE9qKbykdGDWtikUvs/RrQJBAKpJqKN1Id3M7DlOKjJi4Tu+2KhLdSp1/hRkM2SfTuPo53+ECTTzW1NR5D1fUDzGNR1cojNg06VuvIcxgiAIRwUCQQDk/KhHTTp0EziKbPURHX/Icv+cfHv2n5O05vHyFDYJitoNmQrhGog13B74B71e1qjk1VCjX+mtve+vjklKMMuVAkByMSrxUh7/yeevFged+kjn87b+RHuxmaZkrjz4gQw6MXjsPfKem4LmgMf5j+0SlCgSJIhww8Gp8nRihISqTmKxAkEA2wsBYitzBgQ46tmtV/DzAmlXMHc4EcO2hK8CtEI3KsujKKzEZm5965+kFDk7IhSPPU78szuVijiNpk6itxCUPQJBAI74JfrTrJZQW69opOuFTtS8BBJIih3AHlE9pkBc+jwv8NTUATibM8v/hCpxi/1dK+gfOboQO1Vgh3ssvylSOcE=";
-
-        PrivateKey privateKey = privateKey(key);
-        String encrypt = encrypt(val, privateKey);
-        System.out.println(encrypt);
-
-    }
 }

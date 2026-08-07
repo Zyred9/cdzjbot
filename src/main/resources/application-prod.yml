@@ -6,6 +6,8 @@ bots:
     tokens:
       BOT_TOKEN: 7507839053:AAFW7PFexmXOLDiG0GQojLEdGQcA2A2lY4g
     background-id: -1003181400582
+    # 后台命令管理员ID白名单（必填：填写拥有后台权限的 Telegram user id，空列表表示禁止所有后台命令）
+    manager-ids: []
     audit-id: -1003147012451
     publish-id: -1003138818633
     exposure-id: -1002787414688

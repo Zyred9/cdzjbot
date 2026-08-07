@@ -3,8 +3,8 @@ package com.bot.bots.database.enums;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * <p>
@@ -25,7 +25,7 @@ public enum TaskNode {
     private final String desc;
     private final int sleep;
 
-    private static final Map<TaskNode, Integer> times = new HashMap<>();
+    private static final Map<TaskNode, Integer> times = new ConcurrentHashMap<>();
 
     static {
         for (TaskNode node : TaskNode.values()) {

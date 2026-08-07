@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpSession;
 import java.time.LocalDateTime;
+import java.util.Objects;
 
 /**
  * 标签管理 Controller
@@ -55,6 +56,17 @@ public class TagController {
     @ResponseBody
     @PostMapping("/api/tag")
     public boolean create(@RequestBody Tag body) {
+        if (Objects.isNull(body) || StrUtil.isBlank(body.getName())) {
+            return false;
+        }
+        if (body.getName().length() > 50) {
+            return false;
+        }
+        Long exists = this.tagService.count(Wrappers.<Tag>lambdaQuery()
+                .eq(Tag::getName, body.getName()));
+        if (exists > 0) {
+            return false;
+        }
         body.setCreateTime(LocalDateTime.now());
         return tagService.save(body);
     }
@@ -62,6 +74,7 @@ public class TagController {
     @ResponseBody
     @PutMapping("/api/tag/{id}")
     public boolean update(@PathVariable Long id, @RequestBody Tag body) {
+        body.setId(id);
         return tagService.updateById(body);
     }
 

@@ -3,6 +3,7 @@ package com.bot.bots.handlers;
 import cn.hutool.core.collection.CollUtil;
 import com.bot.bots.config.BotProperties;
 import com.bot.bots.database.service.BroadcastGroupService;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.methods.botapimethods.BotApiMethod;
 import org.telegram.telegrambots.meta.api.objects.Update;
@@ -49,7 +50,11 @@ public class GroupMemberHandler extends AbstractHandler {
     protected BotApiMethod<?> execute(Update update) {
         Message message = update.getMessage();
         if (CollUtil.isNotEmpty(message.getNewChatMembers())) {
-            this.broadcastGroupService.createIfAbsent(message.getChatId(), message.getChat().getTitle());
+            try {
+                this.broadcastGroupService.createIfAbsent(message.getChatId(), message.getChat().getTitle());
+            } catch (DuplicateKeyException ignore) {
+                // 并发进群消息下另一线程已登记该群，chat_id 主键冲突忽略
+            }
         } else {
             this.broadcastGroupService.removeByChatId(message.getChatId());
         }

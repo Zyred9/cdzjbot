@@ -36,6 +36,7 @@
         <th>用户名</th>
         <th>用户昵称</th>
         <th>余额(USDT)</th>
+        <th>创建时间</th>
     </tr>
     </thead>
     <tbody id="tbody"></tbody>
@@ -96,6 +97,7 @@
                 <td>${it.username ?? ''}</td>
                 <td>${it.nickname ?? ''}</td>
                 <td>${it.balance ?? ''}</td>
+                <td>${it.createTime ?? ''}</td>
             </tr>
         `).join('');
 

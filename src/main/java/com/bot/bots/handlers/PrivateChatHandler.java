@@ -1,7 +1,7 @@
 package com.bot.bots.handlers;
 
 import cn.hutool.core.util.StrUtil;
-import cn.hutool.crypto.digest.DigestUtil;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.bot.bots.beans.cache.CommonCache;
 import com.bot.bots.beans.caffeine.CountdownCaffeine;
 import com.bot.bots.beans.view.Scheduled;
@@ -23,7 +23,6 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMa
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -94,6 +93,15 @@ public class PrivateChatHandler extends AbstractHandler{
 
             if (DecimalHelper.lessThan(user.getBalance(), Constants.COST)) {
                 BigDecimal subtract = Constants.COST.subtract(user.getBalance());
+                // 幂等：该用户存在未到账充值单则复用，避免重复点击重复建单
+                Recharge pending = this.rechargeService.getOne(
+                        Wrappers.<Recharge>lambdaQuery()
+                                .eq(Recharge::getUserId, user.getUserId())
+                                .eq(Recharge::getRechargeStatus, RechargeStatus.UNRECEIVED)
+                                .last(" limit 1"));
+                if (Objects.nonNull(pending)) {
+                    return markdownReply(message, pending.buildText(user.getBalance()));
+                }
                 Recharge recharge = Recharge.build(user, subtract, this.properties.getAddress());
                 this.rechargeService.save(recharge);
                 CountdownCaffeine.set(
@@ -159,10 +167,10 @@ public class PrivateChatHandler extends AbstractHandler{
             if (StrUtil.isBlank(user.getPassword())) {
                 return reply(message, "\u8D26\u53F7\u5C1A\u672A\u8BBE\u7F6E\u5BC6\u7801\uFF0C\u8BF7\u8054\u7CFB\u7BA1\u7406\u5458");
             }
-            if (!StrUtil.equals(DigestUtil.md5Hex(oldPwd), user.getPassword())) {
+            if (!PasswordHelper.matches(oldPwd, user.getPassword())) {
                 return reply(message, "\u65E7\u5BC6\u7801\u9519\u8BEF");
             }
-            user.setPassword(DigestUtil.md5Hex(newPwd));
+            user.setPassword(PasswordHelper.hash(newPwd));
             this.userService.updateById(user);
             return reply(message, "\u5BC6\u7801\u4FEE\u6539\u6210\u529F");
         }
@@ -193,6 +201,8 @@ public class PrivateChatHandler extends AbstractHandler{
             if (Objects.isNull(query)) {
                 return null;
             }
+            // 查询成功移除粘滞状态，避免后续任意文本都被当作汇率查询
+            CommonCache.getIfRemove(message.getFrom().getId());
 
             Config config = this.configService.queryConfig();
             InlineKeyboardMarkup keyboard = KeyboardHelper.keyboard(config.getQueryKeyboard());
@@ -331,7 +341,6 @@ public class PrivateChatHandler extends AbstractHandler{
         }
 
         List<PriceBean> priceBeans = this.httpHelper.doQueryOkx(payment, "sell");
-        priceBeans.sort(Comparator.comparing(PriceBean::getPrice));
 
         StringBuilder sb = new StringBuilder()
                 .append("*OTC商家实时价格*").append("\n")

@@ -8,7 +8,6 @@ import com.bot.bots.database.enums.TempEnum;
 import lombok.NonNull;
 
 import java.lang.reflect.Type;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -22,7 +21,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class CommonCache {
 
-    private static final Map<Long, TempEnum> CACHE = new HashMap<>(128);
+    private static final Map<Long, TempEnum> CACHE = new ConcurrentHashMap<>(128);
     public static void put(Long id, TempEnum tempEnum) {
         CACHE.put(id, tempEnum);
     }

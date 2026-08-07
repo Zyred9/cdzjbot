@@ -187,6 +187,7 @@ CREATE TABLE `t_user`  (
   `nickname` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '用户昵称',
   `balance` decimal(20, 8) NULL DEFAULT 0.00000000 COMMENT 'USDT余额',
   `password` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '后台管理登录密码(MD5)',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   PRIMARY KEY (`user_id`) USING BTREE,
   INDEX `idx_username`(`username` ASC) USING BTREE
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '用户表' ROW_FORMAT = DYNAMIC;
@@ -233,7 +234,8 @@ DROP TABLE IF EXISTS `t_broadcast_log`;
 CREATE TABLE `t_broadcast_log`  (
   `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键ID',
   `category_id` bigint NOT NULL COMMENT '分类ID',
-  `content` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '发送内容',
+  `content` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL COMMENT '发送内容',
+  `has_image` tinyint NOT NULL DEFAULT 0 COMMENT '是否含图片：0否 1是',
   `sender_id` bigint NOT NULL COMMENT '发送人用户ID',
   `group_count` int NOT NULL DEFAULT 0 COMMENT '目标群数量',
   `success_count` int NOT NULL DEFAULT 0 COMMENT '成功数',

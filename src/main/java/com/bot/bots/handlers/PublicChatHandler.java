@@ -8,6 +8,7 @@ import com.bot.bots.database.service.BroadcastGroupService;
 import com.bot.bots.database.service.ConfigService;
 import com.bot.bots.helper.JexlCalculator;
 import com.bot.bots.helper.KeyboardHelper;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.methods.botapimethods.BotApiMethod;
 import org.telegram.telegrambots.meta.api.objects.Update;
@@ -49,7 +50,11 @@ public class PublicChatHandler extends AbstractHandler {
         Message message = update.getMessage();
         String text = message.getText();
 
-        this.broadcastGroupService.createIfAbsent(message.getChatId(), message.getChat().getTitle());
+        try {
+            this.broadcastGroupService.createIfAbsent(message.getChatId(), message.getChat().getTitle());
+        } catch (DuplicateKeyException ignore) {
+            // 并发下另一线程已登记该群，chat_id 主键冲突忽略
+        }
 
         PaymentEnum payment = PaymentEnum.of(text);
         if (Objects.nonNull(payment)) {

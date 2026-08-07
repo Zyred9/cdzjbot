@@ -51,9 +51,16 @@ public class MapUtil {
     private final OkHttpClient okHttpClient;
 
     // 全局限流：统一调度，1秒最多3个请求
-    private final BlockingQueue<Runnable> drivingJobs = new LinkedBlockingQueue<>();
+    private final BlockingQueue<Runnable> drivingJobs = new LinkedBlockingQueue<>(MAX_QUEUE);
     private ScheduledExecutorService drivingScheduler;
     private static final int MAX_QPS = 3;
+    private static final int MAX_QUEUE = 2000;
+    /**
+     * 驾车路径规划最多尝试次数（含首次调用），网络瞬时超时自动重试
+     */
+    private static final int DRIVING_MAX_ATTEMPTS = 2;
+    // 地理编码独立限流（与驾车共用 1 秒 3 个的 QPS 上限），避免高德 429
+    private final Semaphore locationLimiter = new Semaphore(MAX_QPS);
 
 
     @PostConstruct
@@ -74,7 +81,7 @@ public class MapUtil {
                     job.run();
                 };
             } catch (Exception ex) {
-                log.warn("[MapUtil] 驾车调度异常：{}", ex.getMessage());
+                log.warn("[MapUtil] 驾车调度异常", ex);
             }
         }, intervalMs, intervalMs, TimeUnit.MILLISECONDS);
 
@@ -120,23 +127,37 @@ public class MapUtil {
                         }
                     }
                 } catch (Exception ex) {
-                    log.warn("[MapUtil] 单次驾车规划失败：{}", ex.getMessage());
+                    log.warn("[MapUtil] 单次驾车规划失败", ex);
                 } finally {
-                    if (batchDone.incrementAndGet() == ctxList.size()) {
-                        try {
-                            consumer.accept(batchAccepted);
-                        } catch (Exception cbEx) {
-                            log.warn("[MapUtil] 回调异常：{}", cbEx.getMessage());
-                        }
-                    }
+                    this.countDone(batchDone, ctxList.size(), batchAccepted, consumer);
                 }
             };
 
             try {
-                this.drivingJobs.put(job);
-            } catch (InterruptedException ie) {
-                Thread.currentThread().interrupt();
-                log.warn("[MapUtil] 任务入队被中断，{}", ie.getMessage());
+                if (!this.drivingJobs.offer(job)) {
+                    // 队列已满/入队失败：该项直接按失败计入完成计数，保证最终计数达成、回调必然触发
+                    log.warn("[MapUtil] 任务入队失败（队列已满，容量 {}），跳过该地址：{}",
+                            MAX_QUEUE, Objects.isNull(item) ? null : item.getAddress());
+                    this.countDone(batchDone, ctxList.size(), batchAccepted, consumer);
+                }
+            } catch (Exception e) {
+                // 极端异常同样计入完成计数，保证回调必然触发
+                log.warn("[MapUtil] 任务入队异常：{}", e.getMessage());
+                this.countDone(batchDone, ctxList.size(), batchAccepted, consumer);
+            }
+        }
+    }
+
+
+    /**
+     * 完成计数：批次内全部项（含入队失败项）处理完后，统一回调一次
+     */
+    private void countDone(AtomicInteger batchDone, int total, List<AcceptanceContext> batchAccepted, Consumer<List<AcceptanceContext>> consumer) {
+        if (batchDone.incrementAndGet() == total) {
+            try {
+                consumer.accept(batchAccepted);
+            } catch (Exception cbEx) {
+                log.warn("[MapUtil] 回调异常", cbEx);
             }
         }
     }
@@ -145,31 +166,53 @@ public class MapUtil {
     private Integer driving(String origin, String destination) {
         // 注意：高德要求经纬度为 "lon,lat"，中间逗号不能编码，否则会造成解析失败，这里不对逗号做编码处理。
         final String url = StrUtil.format(DIRECTION_DRIVING, origin, destination, this.properties.getApiKey());
-        try {
-            JSONObject root = this.doHttpQuery(url);
-            if (Objects.isNull(root)) {
-                return null;
-            }
-            String status = root.getStr("status", "0");
-            if (!"1".equals(status)) {
-                log.warn("[驾车路径规划] 调用失败，status={}, info={}", status, root.getStr("info"));
-                return null;
-            }
-            JSONObject route = root.getJSONObject("route");
-            if (route == null) {
-                return null;
-            }
-            JSONArray paths = route.getJSONArray("paths");
-            if (CollUtil.isEmpty(paths)) {
-                return null;
-            }
-            JSONObject first = (JSONObject) paths.get(0);
-            String distance = first.getStr("distance");
-            return Integer.parseInt(distance);
-        } catch (Exception ex) {
-            log.error("[驾车路径规划] 失败：{}", ex.getMessage());
+        JSONObject root = this.queryWithRetry(url);
+        if (Objects.isNull(root)) {
             return null;
         }
+        String status = root.getStr("status", "0");
+        if (!"1".equals(status)) {
+            log.warn("[驾车路径规划] 调用失败，status={}, info={}", status, root.getStr("info"));
+            return null;
+        }
+        JSONObject route = root.getJSONObject("route");
+        if (route == null) {
+            return null;
+        }
+        JSONArray paths = route.getJSONArray("paths");
+        if (CollUtil.isEmpty(paths)) {
+            return null;
+        }
+        JSONObject first = (JSONObject) paths.get(0);
+        String distance = first.getStr("distance");
+        try {
+            return Integer.parseInt(distance);
+        } catch (NumberFormatException ex) {
+            log.error("[驾车路径规划] 距离解析失败，distance={}", distance, ex);
+            return null;
+        }
+    }
+
+    /**
+     * 高德查询带重试：网络异常或返回空响应时最多尝试 {@link #DRIVING_MAX_ATTEMPTS} 次，避免瞬时超时导致路径规划失败
+     */
+    private JSONObject queryWithRetry(String url) {
+        for (int attempt = 1; attempt <= DRIVING_MAX_ATTEMPTS; attempt++) {
+            try {
+                JSONObject root = this.doHttpQuery(url);
+                if (Objects.nonNull(root)) {
+                    return root;
+                }
+                log.warn("[驾车路径规划] 第 {} 次调用返回空响应", attempt);
+            } catch (Exception ex) {
+                if (attempt == DRIVING_MAX_ATTEMPTS) {
+                    log.error("[驾车路径规划] 调用失败，已重试 {} 次", DRIVING_MAX_ATTEMPTS, ex);
+                } else {
+                    log.warn("[驾车路径规划] 第 {} 次调用失败：{}", attempt, ex.getMessage());
+                }
+            }
+        }
+        return null;
     }
 
 
@@ -183,9 +226,21 @@ public class MapUtil {
      * @return        "lon,lat"；失败返回 null
      */
     public String location (String address) {
-        final String encAddress = URLEncoder.encode(address, StandardCharsets.UTF_8);
-        final String url = StrUtil.format(GEO_CODE, this.properties.getApiKey(), encAddress);
+        boolean acquired;
         try {
+            acquired = this.locationLimiter.tryAcquire(2, TimeUnit.SECONDS);
+        } catch (InterruptedException ie) {
+            Thread.currentThread().interrupt();
+            log.warn("[MapUtil] 地理编码限流等待被中断：{}", ie.getMessage());
+            return null;
+        }
+        if (!acquired) {
+            log.warn("[MapUtil] 地理编码请求过载，等待限流超时，跳过地址：{}", address);
+            return null;
+        }
+        try {
+            final String encAddress = URLEncoder.encode(address, StandardCharsets.UTF_8);
+            final String url = StrUtil.format(GEO_CODE, this.properties.getApiKey(), encAddress);
             JSONObject root = this.doHttpQuery(url);
             if (Objects.isNull(root)) {
                 return null;
@@ -203,8 +258,10 @@ public class MapUtil {
             JSONObject first = (JSONObject)geocodes.get(0);
             return first.getStr("location");
         } catch (Exception ex) {
-            log.error("[查询经纬度] 失败：{}", ex.getMessage());
+            log.error("[查询经纬度] 失败", ex);
             return null;
+        } finally {
+            this.locationLimiter.release();
         }
     }
 

@@ -47,7 +47,11 @@ public class TransferBean {
      * @return  价格
      */
     public BigDecimal parseValue () {
-        BigDecimal pow = BigDecimal.TEN.pow(Objects.isNull(this.tokenInfo.getTokenDecimal()) ? 6 : this.tokenInfo.getTokenDecimal());
+        if (Objects.isNull(this.quant)) {
+            return BigDecimal.ZERO;
+        }
+        Integer tokenDecimal = Objects.isNull(this.tokenInfo) ? null : this.tokenInfo.getTokenDecimal();
+        BigDecimal pow = BigDecimal.TEN.pow(Objects.isNull(tokenDecimal) ? 6 : tokenDecimal);
         return this.quant.divide(pow, 12, RoundingMode.HALF_UP);
     }
 

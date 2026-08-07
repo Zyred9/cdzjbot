@@ -1,10 +1,12 @@
 package com.bot.bots.config;
 
+import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.StrUtil;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -37,6 +39,8 @@ public class BotProperties {
 
     /** 后台群ID **/
     private Long backgroundId;
+    /** 后台命令管理员ID白名单（空则拒绝所有后台命令） **/
+    private List<Long> managerIds = new ArrayList<>();
     /** 供需申请通过群ID **/
     private Long auditId;
     /** 供需发布群ID **/
@@ -57,6 +61,10 @@ public class BotProperties {
 
     public boolean fromBackground (Long chatId) {
         return this.backgroundId.equals(chatId);
+    }
+
+    public boolean isManager (Long userId) {
+        return CollUtil.isNotEmpty(this.managerIds) && CollUtil.contains(this.managerIds, userId);
     }
 
     public void setBotUsername(String botUsername) {

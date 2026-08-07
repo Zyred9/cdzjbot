@@ -87,6 +87,9 @@ public class CallbackHandler extends AbstractHandler {
     }
 
     private BotApiMethod<?> processorPrivacyCallback(CallbackQuery callbackQuery, List<String> commands, Message message) {
+        // 预应答，避免按钮转圈（其他 answer/answerAlert 分支重复应答无副作用）
+        AsyncSender.async(answer(callbackQuery, ""));
+
         if (StrUtil.equals(commands.get(1), "province")) {
             int query = Integer.parseInt(commands.get(4));
             List<Address> address = this.addressService.selectProvince();
@@ -121,7 +124,11 @@ public class CallbackHandler extends AbstractHandler {
             Page<Address> countyList = this.addressService.selectCounty(index, cityCode);
             InlineKeyboardMarkup markup = KeyboardHelper.buildCountyKeyboard(countyList, cityCode, address.getProvinceCode(), query);
 
-            CommonCache.getAccCtx(callbackQuery.getFrom().getId()).setCityName(address.getCityName());
+            AcceptanceContext ctx = CommonCache.getAccCtx(callbackQuery.getFrom().getId());
+            if (Objects.isNull(ctx)) {
+                return answerAlert(callbackQuery, "❌会话已过期，请重新发起");
+            }
+            ctx.setCityName(address.getCityName());
             String text = CommonCache.accCtxText(callbackQuery.getFrom().getId());
             return editMarkdown(message, text, markup);
         }
@@ -130,6 +137,9 @@ public class CallbackHandler extends AbstractHandler {
             String countyCode = commands.get(2);
             int query = Integer.parseInt(commands.get(4));
             AcceptanceContext ctx = CommonCache.getAccCtx(callbackQuery.getFrom().getId());
+            if (Objects.isNull(ctx)) {
+                return answerAlert(callbackQuery, "❌会话已过期，请重新发起");
+            }
 
             Address address = this.addressService.selectOneCounty(countyCode);
             ctx.setCountyName(address.getCountyName());
@@ -159,6 +169,9 @@ public class CallbackHandler extends AbstractHandler {
             String model = commands.get(2);
             int query = Integer.parseInt(commands.get(3));
             AcceptanceContext ctx = CommonCache.getAccCtx(callbackQuery.getFrom().getId());
+            if (Objects.isNull(ctx)) {
+                return answerAlert(callbackQuery, "❌会话已过期，请重新发起");
+            }
 
             InlineKeyboardMarkup markup;
             if (StrUtil.equals(model, "confirm")) {
@@ -193,6 +206,9 @@ public class CallbackHandler extends AbstractHandler {
             int query = Integer.parseInt(commands.get(3));
 
             AcceptanceContext ctx = CommonCache.getAccCtx(callbackQuery.getFrom().getId());
+            if (Objects.isNull(ctx)) {
+                return answerAlert(callbackQuery, "❌会话已过期，请重新发起");
+            }
 
             InlineKeyboardMarkup markup;
             if (StrUtil.equals(packet, "confirm")) {
@@ -220,6 +236,9 @@ public class CallbackHandler extends AbstractHandler {
             int query = Integer.parseInt(commands.get(3));
 
             AcceptanceContext ctx = CommonCache.getAccCtx(callbackQuery.getFrom().getId());
+            if (Objects.isNull(ctx)) {
+                return answerAlert(callbackQuery, "❌会话已过期，请重新发起");
+            }
 
             InlineKeyboardMarkup markup;
             if (StrUtil.equals(supplement, "confirm")) {
@@ -317,6 +336,9 @@ public class CallbackHandler extends AbstractHandler {
             String scope = commands.get(2);
             int query = Integer.parseInt(commands.get(3));
             AcceptanceContext ctx = CommonCache.getAccCtx(callbackQuery.getFrom().getId());
+            if (Objects.isNull(ctx)) {
+                return answerAlert(callbackQuery, "❌会话已过期，请重新发起");
+            }
 
             if (StrUtil.equals(scope, "custom")) {
                 CommonCache.put(callbackQuery.getFrom().getId(), TempEnum.EXCHANGE_INPUT_CUSTOM_SCOPE);
@@ -389,6 +411,9 @@ public class CallbackHandler extends AbstractHandler {
             }
 
             AcceptanceContext ctx = CommonCache.getAccCtx(callbackQuery.getFrom().getId());
+            if (Objects.isNull(ctx)) {
+                return answerAlert(callbackQuery, "❌会话已过期，请重新发起");
+            }
             // 承兑 承兑所在地
             if (Objects.equals(query, AddressParam.EXCHANGE.getCode()) || Objects.equals(query, AddressParam.QUERY_EXCHANGE.getCode())){
                 ctx.setCategories(of);
@@ -407,6 +432,9 @@ public class CallbackHandler extends AbstractHandler {
             if (StrUtil.equals(inputType, "interval")) {
                 if (StrUtil.equals(value, "show")) {
                     AcceptanceContext ctx = CommonCache.getAccCtx(callbackQuery.getFrom().getId());
+                    if (Objects.isNull(ctx)) {
+                        return answerAlert(callbackQuery, "❌会话已过期，请重新发起");
+                    }
                     Integer query = Integer.parseInt(commands.get(4));
                     if (Objects.equals(query, AddressParam.EXCHANGE.getCode())) {
 
@@ -437,6 +465,9 @@ public class CallbackHandler extends AbstractHandler {
             if (StrUtil.equals(inputType, "rate")) {
                 InlineKeyboardMarkup markup = null;
                 AcceptanceContext ctx = CommonCache.getAccCtx(callbackQuery.getFrom().getId());
+                if (Objects.isNull(ctx)) {
+                    return answerAlert(callbackQuery, "❌会话已过期，请重新发起");
+                }
                 if (StrUtil.equals(value, "increment")) {
                     ctx.incrementRate(0.05);
                     markup = KeyboardHelper.buildRateIncrementKeyboard();
@@ -460,6 +491,9 @@ public class CallbackHandler extends AbstractHandler {
         if (StrUtil.equals(commands.get(1), "material")){
             String val = commands.get(2);
             AcceptanceContext ctx = CommonCache.getAccCtx(callbackQuery.getFrom().getId());
+            if (Objects.isNull(ctx)) {
+                return answerAlert(callbackQuery, "❌会话已过期，请重新发起");
+            }
             InlineKeyboardMarkup markup;
             if (StrUtil.equals(val, "confirm")) {
                 if (CollUtil.isEmpty(ctx.getMaterials())) {
@@ -468,12 +502,17 @@ public class CallbackHandler extends AbstractHandler {
                 markup = KeyboardHelper.buildForbidKeyboard(ctx.getForbids());
             } else {
                 MaterialEnum materialEnum = MaterialEnum.ofCode(val);
-                if (Objects.isNull(ctx.getMaterials())) {
-                    List<MaterialEnum> materialEnums = new ArrayList<>(4);
-                    materialEnums.add(materialEnum);
-                    ctx.setMaterials(materialEnums);
-                } else {
-                    ctx.getMaterials().add(materialEnum);
+                if (Objects.nonNull(materialEnum)) {
+                    List<MaterialEnum> materials = ctx.getMaterials();
+                    if (CollUtil.isEmpty(materials)) {
+                        materials = new ArrayList<>(4);
+                        ctx.setMaterials(materials);
+                    }
+                    if (materials.contains(materialEnum)) {
+                        materials.remove(materialEnum);
+                    } else {
+                        materials.add(materialEnum);
+                    }
                 }
                 markup = KeyboardHelper.buildMaterialRemarksKeyboard(ctx.getMaterials());
             }
@@ -485,6 +524,9 @@ public class CallbackHandler extends AbstractHandler {
         if (StrUtil.equals(commands.get(1), "forbid")) {
             String val = commands.get(2);
             AcceptanceContext ctx = CommonCache.getAccCtx(callbackQuery.getFrom().getId());
+            if (Objects.isNull(ctx)) {
+                return answerAlert(callbackQuery, "❌会话已过期，请重新发起");
+            }
             InlineKeyboardMarkup markup;
             if (StrUtil.equals(val, "confirm")) {
                 if (CollUtil.isEmpty(ctx.getForbids())) {
@@ -504,6 +546,9 @@ public class CallbackHandler extends AbstractHandler {
         if (StrUtil.equals(commands.get(1), "airborne")) {
             String val = commands.get(2);
             AcceptanceContext ctx = CommonCache.getAccCtx(callbackQuery.getFrom().getId());
+            if (Objects.isNull(ctx)) {
+                return answerAlert(callbackQuery, "❌会话已过期，请重新发起");
+            }
             InlineKeyboardMarkup markup;
             if (StrUtil.equals(val, "confirm")) {
                 if (Objects.isNull(ctx.getAirborne())) {
@@ -523,6 +568,9 @@ public class CallbackHandler extends AbstractHandler {
         if (StrUtil.equals(commands.get(1), "station")) {
             String val = commands.get(2);
             AcceptanceContext ctx = CommonCache.getAccCtx(callbackQuery.getFrom().getId());
+            if (Objects.isNull(ctx)) {
+                return answerAlert(callbackQuery, "❌会话已过期，请重新发起");
+            }
             InlineKeyboardMarkup markup;
             if (StrUtil.equals(val, "confirm")) {
                 if (Objects.isNull(ctx.getStation())) {
@@ -542,6 +590,9 @@ public class CallbackHandler extends AbstractHandler {
         if (StrUtil.equals(commands.get(1), "move")) {
             String val = commands.get(2);
             AcceptanceContext ctx = CommonCache.getAccCtx(callbackQuery.getFrom().getId());
+            if (Objects.isNull(ctx)) {
+                return answerAlert(callbackQuery, "❌会话已过期，请重新发起");
+            }
             InlineKeyboardMarkup markup;
             if (StrUtil.equals(val, "confirm")) {
                 if (Objects.isNull(ctx.getMove())) {
@@ -561,6 +612,9 @@ public class CallbackHandler extends AbstractHandler {
         if (StrUtil.equals(commands.get(1), "follow")) {
             String val = commands.get(2);
             AcceptanceContext ctx = CommonCache.getAccCtx(callbackQuery.getFrom().getId());
+            if (Objects.isNull(ctx)) {
+                return answerAlert(callbackQuery, "❌会话已过期，请重新发起");
+            }
             InlineKeyboardMarkup markup;
             if (StrUtil.equals(val, "confirm")) {
                 if (Objects.isNull(ctx.getFollow())) {
@@ -584,6 +638,9 @@ public class CallbackHandler extends AbstractHandler {
                 String text = CommonCache.accCtxText(callbackQuery.getFrom().getId());
 
                 AcceptanceContext ctx = CommonCache.getRemoveAccCtx(callbackQuery.getFrom().getId());
+                if (Objects.isNull(ctx)) {
+                    return answerAlert(callbackQuery, "❌会话已过期，请重新发起");
+                }
                 AcceptanceCtx acceptanceCtx = ctx.buildCtx();
                 acceptanceCtx.setUserId(callbackQuery.getFrom().getId());
                 acceptanceCtx.setUsername(callbackQuery.getFrom().getUserName());
@@ -623,7 +680,8 @@ public class CallbackHandler extends AbstractHandler {
             }
             Set<CategoryEnum> categorieSet = new HashSet<>(ctx.getCategories());
             for (AcceptanceCtx acceptanceCtx : databaseCtxList) {
-                if (acceptanceCtx.getCategories().stream().anyMatch(categorieSet::contains)) {
+                if (CollUtil.isNotEmpty(acceptanceCtx.getCategories())
+                        && acceptanceCtx.getCategories().stream().anyMatch(categorieSet::contains)) {
                     ctxList.add(acceptanceCtx.buildContext());
                 }
             }
@@ -648,21 +706,57 @@ public class CallbackHandler extends AbstractHandler {
                 return answer(callbackQuery, "发起的审批不存在！！");
             }
 
-            User user = this.userService.getById(p.getUserId());
+            // 状态守卫：仅待审核状态允许审核，防止重复审核
+            if (!Objects.equals(p.getPass(), PublishStatus.AUDIT_WAIT)) {
+                return answer(callbackQuery, "该发布已审核过了");
+            }
+
             if (value) {
-                user.setBalance(user.getBalance().subtract(Constants.COST));
-                this.userService.updateById(user);
+                // 原子更新审核状态为通过，返回 false 说明已被并发处理
+                boolean cas = this.publishService.lambdaUpdate()
+                        .eq(Publish::getId, p.getId())
+                        .eq(Publish::getPass, PublishStatus.AUDIT_WAIT)
+                        .set(Publish::getPass, PublishStatus.AUDIT_PASS)
+                        .update();
+                if (!cas) {
+                    return answer(callbackQuery, "该发布已审核过了");
+                }
+
+                // 原子扣费：余额不足则扣费失败，转为拒绝
+                boolean deduct = this.userService.lambdaUpdate()
+                        .eq(User::getUserId, p.getUserId())
+                        .ge(User::getBalance, Constants.COST)
+                        .setSql("balance = balance - {0}", Constants.COST)
+                        .update();
+                if (!deduct) {
+                    this.publishService.lambdaUpdate()
+                            .eq(Publish::getId, p.getId())
+                            .set(Publish::getPass, PublishStatus.AUDIT_REJECT)
+                            .update();
+                    AsyncSender.async(ok(p.getUserId(), "❌余额不足，发布未通过"));
+                    return this.editMarkdown(message, message.getText(), KeyboardHelper.buildCommonDel("❌拒绝(点击删除本消息)"));
+                }
 
                 Long publishId = this.properties.getPublishId();
                 // 响应给用户
-                AsyncSender.async(this.ok(user.getUserId(), "✅你的发布已通过！！"));
+                AsyncSender.async(this.ok(p.getUserId(), "✅你的发布已通过！！"));
                 // 响应到频道
                 AsyncSender.async(this.markdown(publishId, p.getText(), KeyboardHelper.buildPublishChannelKeyboard()));
                 // 响应给审核群
                 return this.editMarkdown(message, message.getText(), KeyboardHelper.buildCommonDel("✅完成(点击删除本消息)"));
             }
 
-            AsyncSender.async(ok(user.getUserId(), "❌你的发布不通过，有问题联系客服"));
+            // 原子更新审核状态为拒绝，返回 false 说明已被并发处理
+            boolean cas = this.publishService.lambdaUpdate()
+                    .eq(Publish::getId, p.getId())
+                    .eq(Publish::getPass, PublishStatus.AUDIT_WAIT)
+                    .set(Publish::getPass, PublishStatus.AUDIT_REJECT)
+                    .update();
+            if (!cas) {
+                return answer(callbackQuery, "该发布已审核过了");
+            }
+
+            AsyncSender.async(ok(p.getUserId(), "❌你的发布不通过，有问题联系客服"));
             return this.editMarkdown(message, message.getText(), KeyboardHelper.buildCommonDel("❌拒绝(点击删除本消息)"));
         }
 
@@ -675,23 +769,25 @@ public class CallbackHandler extends AbstractHandler {
                 return answer(callbackQuery, "发起的审批不存在！！");
             }
 
-            User user = this.userService.getById(expose.getUserId());
+            // 原子更新审核状态，返回 false 说明已被审核
+            boolean updated = this.exposeService.updateStatusAndAudit(exposeId,
+                    value ? ExposeStatus.APPROVED : ExposeStatus.REJECTED);
+            if (!updated) {
+                return answer(callbackQuery, "该曝光已审核");
+            }
 
             if (value) {
                 Long channelId = this.properties.getExposureId();
                 // 发布到频道，附三按钮
                 AsyncSender.async(this.markdown(channelId, expose.getTextRaw(), KeyboardHelper.buildPublishChannelKeyboard()));
-                // 更新状态与审计信息
-                this.exposeService.updateStatusAndAudit(exposeId, ExposeStatus.APPROVED);
                 // 通知用户
-                AsyncSender.async(this.ok(user.getUserId(), "骗子曝光已发布"));
+                AsyncSender.async(this.ok(expose.getUserId(), "骗子曝光已发布"));
                 // 编辑审核群消息为“完成”
                 return this.editMarkdown(message, message.getText(), KeyboardHelper.buildCommonDel("✅完成(点击删除本消息)"));
             }
 
             // 拒绝
-            this.exposeService.updateStatusAndAudit(exposeId, ExposeStatus.REJECTED);
-            AsyncSender.async(ok(user.getUserId(), "骗子发布已拒绝，请填写的更加详细哦，有问题联系客服"));
+            AsyncSender.async(ok(expose.getUserId(), "骗子发布已拒绝，请填写的更加详细哦，有问题联系客服"));
             return this.editMarkdown(message, message.getText(), KeyboardHelper.buildCommonDel("❌拒绝(点击删除本消息)"));
         }
 

@@ -41,7 +41,26 @@
             <select id="send_category" class="input" style="min-width:180px"><option value="">-- 选择分类 --</option></select>
             <button class="btn" onclick="broadcastSend()">发送</button>
         </div>
-        <div><textarea id="send_content" rows="4" placeholder="输入要群发的内容..."></textarea></div>
+        <div style="display:flex;gap:12px;align-items:flex-start">
+            <div style="flex:1">
+                <textarea id="send_content" rows="4" placeholder="输入要群发的内容（可留空，仅发图片）..."></textarea>
+            </div>
+            <div style="min-width:200px">
+                <input type="file" id="send_image" accept="image/*" onchange="previewSendImage()" style="display:none"/>
+                <div id="image_box" onclick="document.getElementById('send_image').click()"
+                     onmouseover="this.style.borderColor='#0f66dd';this.style.background='#d9e9ff'"
+                     onmouseout="this.style.borderColor='#1677ff';this.style.background='#eaf3ff'"
+                     style="border:2px dashed #1677ff;border-radius:8px;height:110px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#1677ff;cursor:pointer;background:#eaf3ff;font-size:13px">
+                    <span style="font-size:26px;line-height:1;font-weight:bold">＋</span>
+                    <span style="font-weight:600;margin-top:6px">上传图片</span>
+                    <span style="color:#666;font-size:12px;margin-top:3px">jpg / png / gif，≤10MB</span>
+                </div>
+                <div id="image_preview_wrap" style="display:none;margin-top:6px;position:relative;width:200px">
+                    <img id="image_preview" style="max-width:200px;max-height:150px;border-radius:6px;display:block;border:1px solid #e5e7eb"/>
+                    <button onclick="removeSendImage(event)" style="position:absolute;top:-8px;right:-8px;border:none;background:#ff4d4f;color:#fff;border-radius:50%;width:20px;height:20px;line-height:20px;cursor:pointer">×</button>
+                </div>
+            </div>
+        </div>
         <div id="send_result" style="margin-top:8px;color:#1677ff;"></div>
     </div>
 
@@ -78,7 +97,7 @@
     <div class="card">
         <div class="section-title">发送记录</div>
         <table>
-            <thead><tr><th>发送人ID</th><th>分类ID</th><th>内容</th><th>目标群数</th><th>成功/失败</th><th>时间</th></tr></thead>
+            <thead><tr><th>发送人ID</th><th>分类ID</th><th>类型</th><th>内容</th><th>目标群数</th><th>成功/失败</th><th>时间</th></tr></thead>
             <tbody id="log_tbody"></tbody>
         </table>
         <div class="pager">
@@ -231,16 +250,39 @@
 
     // ========== 群发 ==========
 
+    function previewSendImage(){
+        const file = document.getElementById('send_image').files[0];
+        const box = document.getElementById('image_box');
+        const wrap = document.getElementById('image_preview_wrap');
+        if(!file){ box.style.display='flex'; wrap.style.display='none'; return; }
+        const reader = new FileReader();
+        reader.onload = e => {
+            document.getElementById('image_preview').src = e.target.result;
+            box.style.display='none';
+            wrap.style.display='block';
+        };
+        reader.readAsDataURL(file);
+    }
+
+    function removeSendImage(e){
+        e.stopPropagation();
+        document.getElementById('send_image').value = '';
+        document.getElementById('image_box').style.display='flex';
+        document.getElementById('image_preview_wrap').style.display='none';
+    }
+
     async function broadcastSend(){
         const categoryId = document.getElementById('send_category').value;
         const content = document.getElementById('send_content').value.trim();
+        const image = document.getElementById('send_image').files[0];
         if(!categoryId){ alert('请选择分类'); return; }
-        if(!content){ alert('请输入发送内容'); return; }
+        if(!content && !image){ alert('请输入内容或选择图片'); return; }
         if(!confirm('确认向该分类下的所有群发送消息？')) return;
-        const resp = await fetch('/api/broadcast/send',{
-            method:'POST',headers:{'Content-Type':'application/json'},
-            body:JSON.stringify({categoryId, content})
-        });
+        const fd = new FormData();
+        fd.append('categoryId', categoryId);
+        if(content) fd.append('content', content);
+        if(image) fd.append('image', image);
+        const resp = await fetch('/api/broadcast/send',{ method:'POST', body: fd });
         const r = await resp.json();
         if(r.success){
             document.getElementById('send_result').innerText = r.msg || '发送成功';
@@ -262,16 +304,20 @@
         logPages = data.pages || 0;
 
         const list = data.records || [];
-        document.getElementById('log_tbody').innerHTML = list.map(it => `
+        document.getElementById('log_tbody').innerHTML = list.map(it => {
+            const hasImage = it.hasImage === 1 || it.hasImage === '1';
+            const type = hasImage ? (it.content ? '图片+文字' : '图片') : '文字';
+            return `
             <tr>
                 <td>${it.senderId ?? ''}</td>
                 <td>${it.categoryId ?? ''}</td>
+                <td>${type}</td>
                 <td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${it.content ?? ''}</td>
                 <td>${it.groupCount ?? ''}</td>
                 <td>${it.successCount ?? 0} / ${it.failCount ?? 0}</td>
                 <td>${it.createTime ?? ''}</td>
-            </tr>
-        `).join('');
+            </tr>`;
+        }).join('');
         document.getElementById('logPageInfo').innerText = `第 ${logPageNo} / ${logPages} 页，共 ${logTotal} 条`;
     }
 
