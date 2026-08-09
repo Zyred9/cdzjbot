@@ -5,6 +5,7 @@ import cn.hutool.core.util.StrUtil;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -47,6 +48,15 @@ public class StrHelper {
 
     public static String getKey(Long userId) {
         return userId + "";
+    }
+
+    /**
+     * 生成随机用户ID（10 位，避开真实 Telegram 用户 ID 段位）
+     *
+     * @return 随机用户ID
+     */
+    public static Long randomUserId() {
+        return 1_000_000_000L + ThreadLocalRandom.current().nextLong(9_000_000_000L);
     }
 
     public static int extractPort(String jdbcUrl) {

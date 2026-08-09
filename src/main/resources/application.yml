@@ -1,6 +1,10 @@
 spring:
   profiles:
-    active: dev
+    active: prod
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 25MB
   datasource:
     hikari:
       maximum-pool-size: 3

@@ -13,6 +13,7 @@ import com.bot.bots.database.enums.ForbidTypeEnum;
 import com.bot.bots.database.enums.MaterialEnum;
 import com.bot.bots.database.service.AcceptanceCtxService;
 import com.bot.bots.database.service.TagService;
+import com.bot.bots.helper.StrHelper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -73,6 +74,15 @@ public class AcceptanceCtxController {
     @GetMapping("/api/acceptance/{id}")
     public AcceptanceCtx getById(@PathVariable Long id) {
         return acceptanceCtxService.getById(id);
+    }
+
+    @ResponseBody
+    @PostMapping("/api/acceptance")
+    public boolean save(@RequestBody AcceptanceCtx body) {
+        if (Objects.isNull(body.getUserId())) {
+            body.setUserId(StrHelper.randomUserId());
+        }
+        return acceptanceCtxService.save(body);
     }
 
     @ResponseBody

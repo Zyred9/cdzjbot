@@ -50,7 +50,7 @@ public class PrivateChatController {
                 .eq(userId != null, User::getUserId, userId)
                 .eq(StrUtil.isNotBlank(username), User::getUsername, username)
                 .like(StrUtil.isNotBlank(nickname), User::getNickname, nickname)
-                .orderByDesc(User::getUserId);
+                .orderByDesc(User::getCreateTime);
         return userService.page(Page.of(pageNo, pageSize), wrapper);
     }
 }

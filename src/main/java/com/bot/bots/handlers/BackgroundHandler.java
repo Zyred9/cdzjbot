@@ -6,10 +6,12 @@ import cn.hutool.crypto.digest.DigestUtil;
 import com.alibaba.excel.EasyExcel;
 import com.bot.bots.config.BotProperties;
 import com.bot.bots.database.entity.*;
+import com.bot.bots.database.enums.CategoryEnum;
 import com.bot.bots.database.enums.CustomerTypeEnum;
 import com.bot.bots.database.service.*;
 import com.bot.bots.helper.DecimalHelper;
 import com.bot.bots.helper.KeyboardHelper;
+import com.bot.bots.helper.StrHelper;
 import com.bot.bots.sender.AsyncSender;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -31,7 +33,6 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.time.LocalDateTime;
 import java.util.*;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -302,11 +303,24 @@ public class BackgroundHandler extends AbstractHandler {
             String fileUrl = "https://api.telegram.org/file/bot" + this.properties.getToken() + "/" + tgFile.getFilePath();
             byte[] fileBytes = this.downloadFile(fileUrl);
 
-            List<Map<Integer, String>> rows = EasyExcel.read(new ByteArrayInputStream(fileBytes))
+            List<Map<Integer, String>> allRows = EasyExcel.read(new ByteArrayInputStream(fileBytes))
                     .sheet()
-                    .headRowNumber(1)
+                    .headRowNumber(0)
                     .doReadSync();
 
+            if (CollUtil.isEmpty(allRows)) {
+                return reply(message, "Excel 文件无数据");
+            }
+
+            Map<String, Integer> headerIndex = new HashMap<>();
+            Map<Integer, String> headRow = allRows.get(0);
+            headRow.forEach((index, name) -> {
+                if (StrUtil.isNotBlank(name)) {
+                    headerIndex.put(name.trim(), index);
+                }
+            });
+
+            List<Map<Integer, String>> rows = allRows.subList(1, allRows.size());
             if (CollUtil.isEmpty(rows)) {
                 return reply(message, "Excel 文件无数据");
             }
@@ -324,6 +338,7 @@ public class BackgroundHandler extends AbstractHandler {
                         .setNickname(this.getCellValue(row, 2))
                         .setCustomerType(this.parseCustomerType(this.getCellValue(row, 3)))
                         .setTagIds(tagIds)
+                        .setCategories(this.parseCategories(this.getCellValue(row, headerIndex.get("分类"))))
                         .setAddress(this.mergeAddress(
                                 this.getCellValue(row, 5),
                                 this.getCellValue(row, 6),
@@ -348,13 +363,16 @@ public class BackgroundHandler extends AbstractHandler {
         }
     }
 
-    private String getCellValue(Map<Integer, String> row, int index) {
+    private String getCellValue(Map<Integer, String> row, Integer index) {
+        if (Objects.isNull(index)) {
+            return null;
+        }
         String value = row.get(index);
         return StrUtil.isBlank(value) ? null : value.trim();
     }
 
     private Long generateId() {
-        return 1_000_000_000L + ThreadLocalRandom.current().nextLong(9_000_000_000L);
+        return StrHelper.randomUserId();
     }
 
     private List<Long> getOrCreateTags(Map<String, Long> tagCache, String customerTag) {
@@ -387,6 +405,18 @@ public class BackgroundHandler extends AbstractHandler {
         this.tagService.save(newTag);
         tagCache.put(tagName, newTag.getId());
         return newTag.getId();
+    }
+
+    private List<CategoryEnum> parseCategories(String categoryStr) {
+        if (StrUtil.isBlank(categoryStr)) {
+            return null;
+        }
+        return Arrays.stream(categoryStr.split("[,，、;；\\s]+"))
+                .map(String::trim)
+                .filter(StrUtil::isNotBlank)
+                .map(CategoryEnum::fromJson)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
     }
 
     private Integer parseCustomerType(String type) {

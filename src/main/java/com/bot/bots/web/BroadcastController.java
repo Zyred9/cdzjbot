@@ -32,7 +32,7 @@ import java.util.Objects;
 @RequiredArgsConstructor
 public class BroadcastController {
 
-    private static final long MAX_IMAGE_SIZE = 10 * 1024 * 1024L;
+    private static final long MAX_IMAGE_SIZE = 20 * 1024 * 1024L;
 
     private final BroadcastGroupService broadcastGroupService;
     private final BroadcastCategoryService broadcastCategoryService;
@@ -138,7 +138,7 @@ public class BroadcastController {
             if (image.getSize() > MAX_IMAGE_SIZE) {
                 Map<String, Object> result = new HashMap<>();
                 result.put("success", false);
-                result.put("msg", "图片大小不能超过 10MB");
+                result.put("msg", "图片大小不能超过 20MB");
                 return result;
             }
             String contentType = image.getContentType();
