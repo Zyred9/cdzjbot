@@ -13,6 +13,10 @@
     tbody td { padding: 10px 8px; border: 1px solid #e5e7eb; text-align: center; }
     tbody tr:nth-child(odd) { background: #fcfcfd; }
     tbody tr:hover { background: #f2f8ff; }
+    td.editable { cursor: text; }
+    td.editable:hover { background: #fff7e6; box-shadow: inset 0 0 0 1px #fa8c16; }
+    td.editing { padding: 4px; }
+    .inline-input { width: 100%; box-sizing: border-box; padding: 6px 8px; border: 1px solid #fa8c16; border-radius: 4px; outline: none; font-size: 14px; }
     .pager { margin-top: 12px; }
     select.input { padding: 8px 10px; }
 
@@ -39,6 +43,7 @@
     <input class="input" id="q_tagName" placeholder="标签名称" style="width:100px"/>
     <button class="btn" onclick="loadData(1)">查询</button>
     <button class="btn" onclick="refreshPage()">刷新</button>
+    <button class="btn" onclick="addRow()" style="background:#fa8c16">新增</button>
     <button class="btn" onclick="clickExport()" style="background:#52c41a">导出Excel</button>
     <button class="btn" th:onclick="|location.href='@{/pc/tag(userId=${userId})}'|">标签管理</button>
     <button class="btn" th:onclick="|location.href='@{/pc/team(userId=${userId})}'|">去车队报备</button>
@@ -168,37 +173,79 @@
 
             const tbody = document.getElementById('tbody');
             const visibleIds = list.map(it => it.id);
-            tbody.innerHTML = list.map(it => `
-                <tr>
-                    <td><input type="checkbox" class="row-cb" value="${it.id}" ${selectedIds.has(it.id) ? 'checked' : ''} onchange="toggleRowSelect(this, ${it.id})"/></td>
-                    <td>${it.username ?? ''}</td>
-                    <td>${it.nickname ?? ''}</td>
-                    <td>${it.address ?? ''}</td>
-                    <td>${getCustomerTypeLabel(it.customerType)}</td>
-                    <td>${formatTags(it.tagIds)}</td>
-                    <td>${it.categories}</td>
-                    <td>${it.intervalInput ?? ''}</td>
-                    <td>${it.rate ?? ''}</td>
-                    <td>${it.materials}</td>
-                    <td>${it.forbids}</td>
-                    <td>${toYesNoEmoji(it.airborne)}</td>
-                    <td>${toYesNoEmoji(it.station)}</td>
-                    <td>${toYesNoEmoji(it.move)}</td>
-                    <td>${toYesNoEmoji(it.follow)}</td>
-                    <td>${it.id ?? ''}</td>
-                    <td>${it.userId ?? ''}</td>
-                    <td>
-                        <button class="btn" onclick="editRow(${it.id})">编辑</button>
-                        <button class="btn" style="background:#ff4d4f" onclick="deleteRow(${it.id})">删除</button>
-                    </td>
-                </tr>
-            `).join('');
+            tbody.innerHTML = list.map(it => renderRow(it)).join('');
 
             document.getElementById('pageInfo').innerText = `第 ${pageNo} / ${pages} 页，共 ${total} 条`;
             updateSelectAllCb(visibleIds);
         } catch (e) {
             console.error('加载数据异常', e);
         }
+    }
+
+    // ======= 行渲染 =======
+    function renderCell(field, it){
+        switch (field) {
+            case 'username': return it.username ?? '';
+            case 'nickname': return it.nickname ?? '';
+            case 'address': return it.address ?? '';
+            case 'customerType': return getCustomerTypeLabel(it.customerType);
+            case 'tagIds': return formatTags(it.tagIds);
+            case 'categories': return Array.isArray(it.categories) ? it.categories.join('，') : (it.categories ?? '');
+            case 'intervalInput': return it.intervalInput ?? '';
+            case 'rate': return it.rate ?? '';
+            case 'materials': return Array.isArray(it.materials) ? it.materials.join('，') : (it.materials ?? '');
+            case 'forbids': return Array.isArray(it.forbids) ? it.forbids.join('，') : (it.forbids ?? '');
+            case 'airborne': return toYesNoEmoji(it.airborne);
+            case 'station': return toYesNoEmoji(it.station);
+            case 'move': return toYesNoEmoji(it.move);
+            case 'follow': return toYesNoEmoji(it.follow);
+            default: return '';
+        }
+    }
+
+    function renderRow(it){
+        const inlineTd = (field) => {
+            if (field === 'tagIds') {
+                return `<td>${renderCell('tagIds', it)}</td>`;
+            }
+            const raw = rawValue(field, it);
+            return `<td class="editable" data-field="${field}" data-id="${it.id}" data-val="${escapeHtml(raw)}" title="点击编辑">${renderCell(field, it)}</td>`;
+        };
+        return `
+            <tr data-row-id="${it.id}">
+                <td><input type="checkbox" class="row-cb" value="${it.id}" ${selectedIds.has(it.id) ? 'checked' : ''} onchange="toggleRowSelect(this, ${it.id})"/></td>
+                ${inlineTd('username')}
+                ${inlineTd('nickname')}
+                ${inlineTd('address')}
+                ${inlineTd('customerType')}
+                ${inlineTd('tagIds')}
+                ${inlineTd('categories')}
+                ${inlineTd('intervalInput')}
+                ${inlineTd('rate')}
+                ${inlineTd('materials')}
+                ${inlineTd('forbids')}
+                ${inlineTd('airborne')}
+                ${inlineTd('station')}
+                ${inlineTd('move')}
+                ${inlineTd('follow')}
+                <td>${it.id ?? ''}</td>
+                <td>${it.userId ?? ''}</td>
+                <td>
+                    <button class="btn" onclick="editRow(${it.id})">编辑</button>
+                    <button class="btn" style="background:#ff4d4f" onclick="deleteRow(${it.id})">删除</button>
+                </td>
+            </tr>
+        `;
+    }
+
+    function rawValue(field, it){
+        if (field === 'customerType') return it.customerType ?? '';
+        if (field === 'airborne' || field === 'station' || field === 'move' || field === 'follow') return it[field] ? 'true' : 'false';
+        if (field === 'categories' || field === 'materials' || field === 'forbids') {
+            const arr = Array.isArray(it[field]) ? it[field] : (it[field] ? it[field].toString().split(/[,，、]/) : []);
+            return arr.join('，');
+        }
+        return it[field] ?? '';
     }
 
     function updateSelectAllCb(visibleIds){
@@ -238,6 +285,7 @@
         const resp = await fetch('/api/acceptance/' + id);
         const item = await resp.json();
         editCache = item;
+        document.getElementById('editModalTitle').innerText = '编辑承兑报备';
 
         // 赋值表单
         setVal('e_username', item.username || '');
@@ -283,6 +331,26 @@
         });
     }
 
+    function addRow(){
+        editCache = {};
+        document.getElementById('editModalTitle').innerText = '新增承兑报备';
+        setVal('e_username', '');
+        setVal('e_nickname', '');
+        setVal('e_address', '');
+        setVal('e_intervalInput', '');
+        setVal('e_rate', '');
+        setVal('e_customerType', '');
+        setVal('e_categories', '');
+        setVal('e_forbids', '');
+        setVal('e_material', '');
+        setChecked('e_airborne', false);
+        setChecked('e_station', false);
+        setChecked('e_move', false);
+        setChecked('e_follow', false);
+        buildTagOptions([]);
+        openEditModal();
+    }
+
     function setVal(id, v){ const el = document.getElementById(id); if(el) el.value = v; }
     function setChecked(id, v){ const el = document.getElementById(id); if(el) el.checked = v; }
 
@@ -294,6 +362,7 @@
 
     async function saveEdit(){
         if(!editCache) return;
+        const isAdd = !editCache.id;
         const body = { ...editCache };
 
         body.username = document.getElementById('e_username').value.trim();
@@ -325,13 +394,14 @@
         body.move = document.getElementById('e_move').checked;
         body.follow = document.getElementById('e_follow').checked;
 
-        const putResp = await fetch('/api/acceptance/' + body.id, {
-            method: 'PUT',
+        const url = isAdd ? '/api/acceptance' : '/api/acceptance/' + body.id;
+        const putResp = await fetch(url, {
+            method: isAdd ? 'POST' : 'PUT',
             headers: {'Content-Type':'application/json'},
             body: JSON.stringify(body)
         });
         const ok = await putResp.json();
-        if(ok){ alert('更新成功'); closeEditModal(); refreshPage(); } else { alert('更新失败'); }
+        if(ok){ alert(isAdd ? '新增成功' : '更新成功'); closeEditModal(); refreshPage(); } else { alert(isAdd ? '新增失败' : '更新失败'); }
     }
 
     async function deleteRow(id){
@@ -340,6 +410,151 @@
         const ok = await resp.json();
         if(ok){ alert('删除成功'); refreshPage(); } else { alert('删除失败'); }
     }
+
+    // ======= 行内编辑逻辑（点击单元格进入编辑，回车或点击空白处提交，Esc 取消） =======
+    const INLINE_SELECT_FIELDS = {
+        customerType: [['', ''], ['1', '合作'], ['2', '未合作'], ['3', '休息中']],
+        airborne: [['false', '否'], ['true', '是']],
+        station: [['false', '否'], ['true', '是']],
+        move: [['false', '否'], ['true', '是']],
+        follow: [['false', '否'], ['true', '是']]
+    };
+    let editingTd = null;
+
+    function escapeHtml(s){
+        return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    function isSelectField(field){ return !!INLINE_SELECT_FIELDS[field]; }
+
+    function cellOrigin(td){
+        // 编辑前的原始值：select 类用 data-val（存 code），文本类用 data-origin（显示文本）
+        if (isSelectField(td.dataset.field)) return td.dataset.val;
+        return td.dataset.origin;
+    }
+
+    async function startInlineEdit(td){
+        if (editingTd && editingTd !== td) await commitInlineEdit(editingTd);
+        const field = td.dataset.field;
+        td.classList.add('editing');
+        td.dataset.originHtml = td.innerHTML;
+        td.dataset.origin = td.innerText.trim();
+
+        const opts = INLINE_SELECT_FIELDS[field];
+        if (opts) {
+            const cur = cellOrigin(td);
+            td.innerHTML = '<select class="inline-input">' +
+                opts.map(o => `<option value="${o[0]}" ${o[0] === cur ? 'selected' : ''}>${o[1]}</option>`).join('') +
+                '</select>';
+            const sel = td.querySelector('select');
+            sel.focus();
+            sel.addEventListener('change', () => commitInlineEdit(td));
+            sel.addEventListener('blur', () => commitInlineEdit(td));
+            sel.addEventListener('keydown', e => {
+                if (e.key === 'Escape') { cancelInlineEdit(td); e.stopPropagation(); }
+            });
+        } else {
+            td.innerHTML = '<input class="inline-input" value="' + escapeHtml(cellOrigin(td)) + '"/>';
+            const input = td.querySelector('input');
+            input.focus();
+            input.select();
+            input.addEventListener('keydown', e => {
+                if (e.key === 'Enter') { commitInlineEdit(td); e.preventDefault(); }
+                else if (e.key === 'Escape') { cancelInlineEdit(td); e.stopPropagation(); }
+            });
+            input.addEventListener('blur', () => commitInlineEdit(td));
+        }
+        editingTd = td;
+    }
+
+    function cancelInlineEdit(td){
+        td.classList.remove('editing');
+        td.innerHTML = td.dataset.originHtml || '';
+        editingTd = null;
+    }
+
+    async function commitInlineEdit(td){
+        if (!editingTd || editingTd !== td) return;
+        editingTd = null;
+        const field = td.dataset.field;
+        const id = td.dataset.id;
+        const origin = td.dataset.origin;
+        const isSel = isSelectField(field);
+
+        let newVal;
+        if (isSel) {
+            const sel = td.querySelector('select');
+            newVal = sel ? sel.value : cellOrigin(td);
+        } else {
+            const input = td.querySelector('input');
+            newVal = input ? input.value.trim() : cellOrigin(td);
+        }
+
+        // 未修改则直接还原
+        if (newVal === cellOrigin(td)) {
+            cancelInlineEdit(td);
+            return;
+        }
+
+        // 组装提交体：只提交当前字段
+        let body;
+        if (field === 'customerType') body = { customerType: newVal === '' ? null : parseInt(newVal) };
+        else if (field === 'airborne' || field === 'station' || field === 'move' || field === 'follow') body = { [field]: newVal === 'true' };
+        else if (field === 'categories' || field === 'materials' || field === 'forbids') body = { [field]: splitCsvToArray(newVal) };
+        else body = { [field]: newVal };
+
+        td.innerHTML = '<span style="color:#999">保存中…</span>';
+        try {
+            const resp = await fetch('/api/acceptance/' + id, {
+                method: 'PUT',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(body)
+            });
+            const ok = await resp.json();
+            if (ok) {
+                td.dataset.val = newVal;
+                td.dataset.origin = cellDisplayText(field, newVal);
+                td.dataset.originHtml = cellDisplayText(field, newVal);
+                restoreCellText(td, td.dataset.originHtml);
+            } else {
+                cancelInlineEdit(td);
+                alert('保存失败');
+            }
+        } catch (e) {
+            cancelInlineEdit(td);
+            alert('保存失败：' + e.message);
+        }
+    }
+
+    // 保存后单元格显示文本
+    function cellDisplayText(field, val){
+        if (field === 'customerType') {
+            return getCustomerTypeLabel(val === '' ? null : parseInt(val));
+        }
+        if (field === 'airborne' || field === 'station' || field === 'move' || field === 'follow') {
+            return val === 'true' ? '✅' : '❌';
+        }
+        if (field === 'categories' || field === 'materials' || field === 'forbids') {
+            return splitCsvToArray(val).join('，');
+        }
+        return escapeHtml(val);
+    }
+
+    function restoreCellText(td, html){
+        td.classList.remove('editing');
+        td.innerHTML = html;
+    }
+
+    document.addEventListener('click', function(e){
+        const td = e.target.closest('td.editable');
+        if (td) {
+            if (editingTd === td) return; // 已在编辑，点击不打断（光标定位）
+            startInlineEdit(td);
+            return;
+        }
+        // 点击空白处：提交当前编辑
+        if (editingTd) commitInlineEdit(editingTd);
+    });
 
     (async function init(){
         await loadTags();
@@ -362,7 +577,7 @@
 </style>
 <div id="editMask" class="mask">
     <div class="modal">
-        <div class="modal-hd">编辑承兑报备</div>
+        <div class="modal-hd" id="editModalTitle">编辑承兑报备</div>
         <div class="modal-bd">
             <div class="form-item"><span class="label">用户名</span><input id="e_username" class="ipt" placeholder="用户名"/></div>
             <div class="form-item"><span class="label">用户昵称</span><input id="e_nickname" class="ipt" placeholder="用户昵称"/></div>
