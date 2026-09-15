@@ -108,7 +108,11 @@ public class AcceptanceCtxController {
             @RequestParam(required = false) String nickname,
             @RequestParam(required = false) String address,
             @RequestParam(required = false) Integer customerType,
-            @RequestParam(required = false) String tagName) {
+            @RequestParam(required = false) String tagName,
+            @RequestParam(required = false) Boolean airborne,
+            @RequestParam(required = false) Boolean station,
+            @RequestParam(required = false) Boolean move,
+            @RequestParam(required = false) Boolean follow) {
         pageNo = Math.max(1, pageNo);
         pageSize = Math.max(1, Math.min(100, pageSize));
 
@@ -130,6 +134,10 @@ public class AcceptanceCtxController {
                 .like(StrUtil.isNotBlank(nickname), AcceptanceCtx::getNickname, nickname)
                 .like(StrUtil.isNotBlank(address), AcceptanceCtx::getAddress, address)
                 .eq(Objects.nonNull(customerType), AcceptanceCtx::getCustomerType, customerType)
+                .eq(Objects.nonNull(airborne), AcceptanceCtx::getAirborne, airborne)
+                .eq(Objects.nonNull(station), AcceptanceCtx::getStation, station)
+                .eq(Objects.nonNull(move), AcceptanceCtx::getMove, move)
+                .eq(Objects.nonNull(follow), AcceptanceCtx::getFollow, follow)
                 .and(CollUtil.isNotEmpty(filterTagIds), w -> {
                     boolean first = true;
                     for (Long tagId : filterTagIds) {

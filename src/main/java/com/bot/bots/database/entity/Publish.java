@@ -28,10 +28,14 @@ public class Publish {
     private String text;
     private PublishStatus pass;
 
-    public static Publish build(String text, Long userId) {
+    // 是否免费发布（使用领取的免费机会）
+    private Boolean freeFlag;
+
+    public static Publish build(String text, Long userId, Boolean freeFlag) {
         return new Publish()
                 .setText(text)
                 .setUserId(userId)
+                .setFreeFlag(freeFlag)
                 .setPass(PublishStatus.AUDIT_WAIT);
     }
 

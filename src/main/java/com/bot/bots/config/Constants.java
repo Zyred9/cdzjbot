@@ -75,6 +75,17 @@ public interface Constants {
             ➖➖➖➖➖➖➖➖➖➖➖
             """;
 
+    String FREE_PUBLISH_CLAIM_SUCCESS_TEXT = """
+            ✅领取成功！
+            您已获得 1 次免费发布供需机会（今日 24 点前有效）
+            请私聊机器人，点击「🟢供需发布」提交您的供需信息
+            """;
+
+    String FREE_PUBLISH_CLAIM_REPEAT_TEXT = """
+            ❌您今天已经领取过免费发布机会啦
+            每天限领 1 次，24 点后重置，明天再来吧！
+            """;
+
     String USER_SELF_TEXT = """
             ID: `{}`
             用户名：{}

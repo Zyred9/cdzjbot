@@ -722,19 +722,22 @@ public class CallbackHandler extends AbstractHandler {
                     return answer(callbackQuery, "该发布已审核过了");
                 }
 
-                // 原子扣费：余额不足则扣费失败，转为拒绝
-                boolean deduct = this.userService.lambdaUpdate()
-                        .eq(User::getUserId, p.getUserId())
-                        .ge(User::getBalance, Constants.COST)
-                        .setSql("balance = balance - {0}", Constants.COST)
-                        .update();
-                if (!deduct) {
-                    this.publishService.lambdaUpdate()
-                            .eq(Publish::getId, p.getId())
-                            .set(Publish::getPass, PublishStatus.AUDIT_REJECT)
+                // 免费发布（免费机会已在提交时核销）：跳过余额扣费
+                if (!Boolean.TRUE.equals(p.getFreeFlag())) {
+                    // 原子扣费：余额不足则扣费失败，转为拒绝
+                    boolean deduct = this.userService.lambdaUpdate()
+                            .eq(User::getUserId, p.getUserId())
+                            .ge(User::getBalance, Constants.COST)
+                            .setSql("balance = balance - {0}", Constants.COST)
                             .update();
-                    AsyncSender.async(ok(p.getUserId(), "❌余额不足，发布未通过"));
-                    return this.editMarkdown(message, message.getText(), KeyboardHelper.buildCommonDel("❌拒绝(点击删除本消息)"));
+                    if (!deduct) {
+                        this.publishService.lambdaUpdate()
+                                .eq(Publish::getId, p.getId())
+                                .set(Publish::getPass, PublishStatus.AUDIT_REJECT)
+                                .update();
+                        AsyncSender.async(ok(p.getUserId(), "❌余额不足，发布未通过"));
+                        return this.editMarkdown(message, message.getText(), KeyboardHelper.buildCommonDel("❌拒绝(点击删除本消息)"));
+                    }
                 }
 
                 Long publishId = this.properties.getPublishId();

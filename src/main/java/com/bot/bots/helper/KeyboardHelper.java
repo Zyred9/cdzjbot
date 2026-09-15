@@ -372,7 +372,7 @@ public class KeyboardHelper {
         return InlineKeyboardMarkup.builder()
                 .keyboard(List.of(
                         row(buttonUrl("骗子曝光", "https://t.me/CDZJpianzi"),
-                                buttonUrl("供需频道", "https://t.me/CDZJgongxu")),
+                                buttonUrl("供需频道", "https://t.me/cdcd52")),
                         row(buttonUrl("联系客服", "https://t.me/CDZJkefu"))
                 )).build();
     }

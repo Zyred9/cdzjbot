@@ -41,6 +41,7 @@ public class PrivateChatHandler extends AbstractHandler{
     private final AddressService addressService;
     private final TeamCtxService teamCtxService;
     private final RechargeService rechargeService;
+    private final PublishFreeRecordService publishFreeRecordService;
 
     @Override
     public boolean support(Update update) {
@@ -91,7 +92,9 @@ public class PrivateChatHandler extends AbstractHandler{
         if (StrUtil.equals(text, "\uD83D\uDFE2供需发布")) {
             User user = this.userService.queryUser(message.getFrom());
 
-            if (DecimalHelper.lessThan(user.getBalance(), Constants.COST)) {
+            // 当天有未使用的免费机会（授权群内领取）→ 跳过余额校验，提交发布时消耗
+            boolean free = this.publishFreeRecordService.hasAvailable(user.getUserId());
+            if (!free && DecimalHelper.lessThan(user.getBalance(), Constants.COST)) {
                 BigDecimal subtract = Constants.COST.subtract(user.getBalance());
                 // 幂等：该用户存在未到账充值单则复用，避免重复点击重复建单
                 Recharge pending = this.rechargeService.getOne(
@@ -225,7 +228,9 @@ public class PrivateChatHandler extends AbstractHandler{
             }
 
             Long auditId = this.properties.getAuditId();
-            Publish p = Publish.build(text, message.getFrom().getId());
+            // 提交发布时即消耗当天免费机会，消耗成功则本次发布免费（审核通过不再扣余额）
+            boolean free = this.publishFreeRecordService.consume(message.getFrom().getId());
+            Publish p = Publish.build(text, message.getFrom().getId(), free);
             this.publishService.save(p);
 
             InlineKeyboardMarkup markup = KeyboardHelper.buildAuditPublishKeyboard(p.getId());

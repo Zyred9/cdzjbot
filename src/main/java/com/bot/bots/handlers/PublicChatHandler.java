@@ -2,10 +2,15 @@ package com.bot.bots.handlers;
 
 import cn.hutool.core.util.StrUtil;
 import com.bot.bots.config.BotProperties;
+import com.bot.bots.config.Constants;
 import com.bot.bots.database.entity.Config;
+import com.bot.bots.database.entity.User;
 import com.bot.bots.database.enums.PaymentEnum;
 import com.bot.bots.database.service.BroadcastGroupService;
 import com.bot.bots.database.service.ConfigService;
+import com.bot.bots.database.service.PublishAuthGroupService;
+import com.bot.bots.database.service.PublishFreeRecordService;
+import com.bot.bots.database.service.UserService;
 import com.bot.bots.helper.JexlCalculator;
 import com.bot.bots.helper.KeyboardHelper;
 import org.springframework.dao.DuplicateKeyException;
@@ -36,6 +41,9 @@ public class PublicChatHandler extends AbstractHandler {
     @Resource private ConfigService configService;
     @Resource private PrivateChatHandler privateChatHandler;
     @Resource private BroadcastGroupService broadcastGroupService;
+    @Resource private UserService userService;
+    @Resource private PublishAuthGroupService publishAuthGroupService;
+    @Resource private PublishFreeRecordService publishFreeRecordService;
 
     @Override
     public boolean support(Update update) {
@@ -56,6 +64,10 @@ public class PublicChatHandler extends AbstractHandler {
             // 并发下另一线程已登记该群，chat_id 主键冲突忽略
         }
 
+        if (StrUtil.equals(text, "领取供需")) {
+            return this.claimFreePublish(message);
+        }
+
         PaymentEnum payment = PaymentEnum.of(text);
         if (Objects.nonNull(payment)) {
             Config config = this.configService.queryConfig();
@@ -72,6 +84,24 @@ public class PublicChatHandler extends AbstractHandler {
         }
 
         return null;
+    }
+
+    /**
+     * 授权群内领取今日免费发布供需机会（每用户每天限 1 次，24 点清零，不可重复领取）
+     */
+    private BotApiMethod<?> claimFreePublish(Message message) {
+        if (Objects.isNull(message.getFrom())) {
+            return null;
+        }
+        if (!this.publishAuthGroupService.isAuthorized(message.getChatId())) {
+            return null;
+        }
+        User user = this.userService.queryUser(message.getFrom());
+        boolean claimed = this.publishFreeRecordService.claim(user.getUserId());
+        if (!claimed) {
+            return markdownReply(message, Constants.FREE_PUBLISH_CLAIM_REPEAT_TEXT);
+        }
+        return markdownReply(message, Constants.FREE_PUBLISH_CLAIM_SUCCESS_TEXT);
     }
 
     private boolean isMathExpression(String text) {

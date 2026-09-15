@@ -156,3 +156,29 @@ ALTER TABLE `t_broadcast_log`
 -- ============================
 ALTER TABLE `t_user`
   ADD COLUMN IF NOT EXISTS `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间' AFTER `password`;
+
+-- ============================
+-- 供需免费发布：授权群 + 每日领取记录 + t_publish 免费发布标记
+-- 业务规则：后台群「授权#群ID」后，群内任意用户发「领取供需」可领 1 次免费发布机会，
+--          每用户每天全局限 1 次，24 点清零；提交发布时即消耗，仍走审核群审核
+-- ============================
+CREATE TABLE IF NOT EXISTS `t_publish_auth_group` (
+  `chat_id` bigint NOT NULL COMMENT '群ID',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '授权时间',
+  PRIMARY KEY (`chat_id`)
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '供需免费发布授权群';
+
+CREATE TABLE IF NOT EXISTS `t_publish_free_record` (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `user_id` bigint NOT NULL COMMENT '领取用户ID',
+  `claim_date` date NOT NULL COMMENT '领取日期（当天有效，24点清零）',
+  `used` tinyint NOT NULL DEFAULT 0 COMMENT '是否已使用：0未使用 1已使用',
+  `use_time` datetime NULL DEFAULT NULL COMMENT '使用时间（提交发布时消耗）',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '领取时间',
+  PRIMARY KEY (`id`) USING BTREE,
+  UNIQUE INDEX `uk_user_claim_date`(`user_id` ASC, `claim_date` ASC) USING BTREE
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '供需免费发布领取记录';
+
+ALTER TABLE `t_publish`
+  ADD COLUMN `free_flag` tinyint NOT NULL DEFAULT 0 COMMENT '是否免费发布：0否 1是' AFTER `pass`;
+-- 注：MySQL 8 不支持 ADD COLUMN IF NOT EXISTS，本句重复执行会报 Duplicate column，可忽略

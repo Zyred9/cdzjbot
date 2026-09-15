@@ -57,6 +57,7 @@ public class BackgroundHandler extends AbstractHandler {
     private final TelegramClient telegramClient;
     private final TagService tagService;
     private final AcceptanceCtxService acceptanceCtxService;
+    private final PublishAuthGroupService publishAuthGroupService;
 
     private static final Pattern RATE_PATTERN = Pattern.compile("^(\\d+(?:\\.\\d+)?)");
 
@@ -189,6 +190,26 @@ public class BackgroundHandler extends AbstractHandler {
             // 页面地址
             if (StrUtil.equals(commands.get(0), "页面地址")) {
                 return ok(message, this.properties.getWebUrl());
+            }
+
+            // 授权#群ID（授权群内可领取免费发布机会）
+            // 删除授权#群ID
+            if (StrUtil.equalsAny(commands.get(0), "授权", "删除授权")) {
+                if (commands.size() < 2) {
+                    return reply(message, "格式：授权#群ID / 删除授权#群ID");
+                }
+                long chatId;
+                try {
+                    chatId = Long.parseLong(commands.get(1).trim());
+                } catch (NumberFormatException e) {
+                    return reply(message, "群ID格式错误，格式：授权#群ID / 删除授权#群ID");
+                }
+                if (StrUtil.equals(commands.get(0), "授权")) {
+                    boolean success = this.publishAuthGroupService.authorize(chatId);
+                    return reply(message, success ? "已授权群：" + chatId : "该群已是授权状态：" + chatId);
+                }
+                boolean removed = this.publishAuthGroupService.removeById(chatId);
+                return reply(message, removed ? "已取消授权：" + chatId : "该群未授权：" + chatId);
             }
 
             // 广播#内容
